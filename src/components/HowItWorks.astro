@@ -1,0 +1,36 @@
+---
+const steps = [
+  { label: 'Meeting Transcript', icon: '📝' },
+  { label: 'AI Processing', icon: '🤖' },
+  { label: 'Enriched Notes', icon: '✨' },
+  { label: 'Vector Search', icon: '🔍' },
+  { label: 'Meeting Briefs', icon: '📋' },
+];
+---
+
+<section class="py-20">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-12">
+      <h2 class="text-3xl font-bold text-text-primary mb-4">How It Works</h2>
+      <p class="text-text-secondary max-w-2xl mx-auto">
+        From raw transcript to actionable intelligence in minutes.
+      </p>
+    </div>
+
+    <div class="flex flex-wrap justify-center items-center gap-4">
+      {steps.map((step, index) => (
+        <>
+          <div class="card text-center min-w-[140px]">
+            <div class="text-3xl mb-2">{step.icon}</div>
+            <div class="text-sm font-medium text-text-primary">{step.label}</div>
+          </div>
+          {index < steps.length - 1 && (
+            <svg class="w-6 h-6 text-text-muted hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          )}
+        </>
+      ))}
+    </div>
+  </div>
+</section>

@@ -1,0 +1,57 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+---
+
+<DocsLayout title="Documentation">
+  <h1>Documentation</h1>
+
+  <p>
+    Welcome to the AI Executive Assistant documentation. This guide will help you set up
+    your own AI-powered meeting workflow, running entirely on your machine.
+  </p>
+
+  <h2>Recommended Path</h2>
+
+  <p>
+    While each module works independently, we recommend following this sequence for the best experience:
+  </p>
+
+  <ol>
+    <li><strong><a href="/docs/foundation">Foundation</a></strong> — Set up your Obsidian vault and configure your AI provider</li>
+    <li><strong><a href="/docs/meeting-processing">Meeting Processing</a></strong> — Enable AI-powered summaries and action item extraction</li>
+    <li><strong><a href="/docs/rag-search">RAG Search</a></strong> — Add semantic search across your knowledge base</li>
+    <li><strong><a href="/docs/calendar">Calendar Integration</a></strong> — Generate proactive meeting briefs</li>
+    <li><strong><a href="/docs/automation">Automation</a></strong> — Set up hands-free processing with n8n</li>
+  </ol>
+
+  <h2>Quick Start</h2>
+
+  <p>
+    Want to skip the details? Use our <a href="/setup">Setup Wizard</a> to generate
+    a customized configuration based on your preferences.
+  </p>
+
+  <h2>Prerequisites</h2>
+
+  <p>Before you begin, you'll need:</p>
+
+  <ul>
+    <li><strong>Obsidian</strong> — Free markdown-based note-taking app (<a href="https://obsidian.md" target="_blank" rel="noopener">download</a>)</li>
+    <li><strong>Python 3.11+</strong> — For running processing scripts</li>
+    <li><strong>Docker</strong> — For Qdrant vector database and n8n (optional modules)</li>
+    <li><strong>An AI Provider</strong> — Ollama (local), OpenAI, Claude, or Vertex AI</li>
+  </ul>
+
+  <h2>Privacy</h2>
+
+  <p>
+    This system is designed with privacy as a core principle. By default:
+  </p>
+
+  <ul>
+    <li>All processing happens on your machine</li>
+    <li>Your notes never leave your computer unless you choose a cloud AI provider</li>
+    <li>You can use <a href="/docs/foundation#ollama-privacy">Ollama</a> for fully local AI processing</li>
+    <li>No telemetry, no tracking, no accounts required</li>
+  </ul>
+</DocsLayout>

@@ -1,0 +1,171 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+---
+
+<DocsLayout title="Foundation">
+  <h1>Foundation</h1>
+
+  <p>
+    The Foundation module sets up the base configuration for all other modules.
+    You'll configure your Obsidian vault structure and connect your preferred AI provider.
+  </p>
+
+  <h2>Prerequisites</h2>
+
+  <ul>
+    <li><strong>Obsidian</strong> installed and a vault created</li>
+    <li><strong>Python 3.11+</strong> installed</li>
+    <li>~15 minutes to complete</li>
+  </ul>
+
+  <h2>What You'll Get</h2>
+
+  <ul>
+    <li>Organized folder structure for meetings, transcripts, and templates</li>
+    <li>Central configuration file for all scripts</li>
+    <li>AI provider connected and tested</li>
+    <li>Ready to add additional modules</li>
+  </ul>
+
+  <h2 id="vault-structure">Vault Structure</h2>
+
+  <p>Create these folders in your Obsidian vault:</p>
+
+  <pre><code>YourVault/
+├── Meetings/           # Processed meeting notes
+├── Transcripts/        # Archived raw transcripts
+├── People/             # Person notes (@ First Last.md)
+├── Templates/          # Tag reference and templates
+└── scripts/            # Processing scripts</code></pre>
+
+  <h2 id="ai-providers">AI Provider Setup</h2>
+
+  <p>Choose one of the following AI providers. Each has different trade-offs:</p>
+
+  <h3 id="ollama-privacy">Ollama (Local - Maximum Privacy)</h3>
+
+  <p>
+    <strong>Best for:</strong> Users who want all data to stay on their machine.
+  </p>
+
+  <ol>
+    <li>Download Ollama from <a href="https://ollama.ai" target="_blank" rel="noopener">ollama.ai</a></li>
+    <li>Install and start Ollama</li>
+    <li>Pull a model: <code>ollama pull llama3.2</code></li>
+    <li>Verify it's running: <code>curl http://localhost:11434/api/tags</code></li>
+  </ol>
+
+  <pre><code># config.yaml
+ai_provider: ollama
+ai_model: llama3.2
+ai_endpoint: http://localhost:11434</code></pre>
+
+  <h3 id="openai">OpenAI API (Easiest Setup)</h3>
+
+  <p>
+    <strong>Best for:</strong> Users who want quick setup and reliable performance.
+  </p>
+
+  <ol>
+    <li>Get an API key from <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">OpenAI Platform</a></li>
+    <li>Set your API key as an environment variable</li>
+  </ol>
+
+  <pre><code># Set in your shell profile (.zshrc, .bashrc)
+export OPENAI_API_KEY="sk-..."</code></pre>
+
+  <pre><code># config.yaml
+ai_provider: openai
+ai_model: gpt-4o-mini
+ai_endpoint: https://api.openai.com/v1</code></pre>
+
+  <h3 id="anthropic">Anthropic Claude API</h3>
+
+  <p>
+    <strong>Best for:</strong> Users who prefer Claude's writing style.
+  </p>
+
+  <ol>
+    <li>Get an API key from <a href="https://console.anthropic.com/" target="_blank" rel="noopener">Anthropic Console</a></li>
+    <li>Set your API key as an environment variable</li>
+  </ol>
+
+  <pre><code># Set in your shell profile
+export ANTHROPIC_API_KEY="sk-ant-..."</code></pre>
+
+  <pre><code># config.yaml
+ai_provider: anthropic
+ai_model: claude-3-5-sonnet-20241022
+ai_endpoint: https://api.anthropic.com</code></pre>
+
+  <h3 id="vertex">Google Vertex AI (Enterprise)</h3>
+
+  <p>
+    <strong>Best for:</strong> Enterprise users with Google Cloud access.
+  </p>
+
+  <ol>
+    <li>Set up a Google Cloud project with Vertex AI enabled</li>
+    <li>Configure authentication with gcloud CLI</li>
+  </ol>
+
+  <pre><code># config.yaml
+ai_provider: vertex
+ai_model: gemini-1.5-flash
+ai_endpoint: us-central1-aiplatform.googleapis.com
+gcp_project: your-project-id</code></pre>
+
+  <h2 id="configuration">Configuration File</h2>
+
+  <p>Create <code>config.yaml</code> in your scripts folder:</p>
+
+  <pre><code># config.yaml - AI Executive Assistant Configuration
+
+# Vault paths (relative to vault root)
+vault_path: ~/Documents/MyVault
+meetings_folder: Meetings
+transcripts_folder: Transcripts
+people_folder: People
+templates_folder: Templates
+
+# AI Provider (ollama, openai, anthropic, vertex)
+ai_provider: ollama
+ai_model: llama3.2
+ai_endpoint: http://localhost:11434
+
+# Processing preferences
+summary_style: concise  # concise or detailed
+action_item_format: "- [ ] @Owner — Task"
+date_format: "%Y-%m-%d"</code></pre>
+
+  <h2 id="verify">Verify It Works</h2>
+
+  <p>Test your AI provider connection:</p>
+
+  <pre><code>python scripts/test_connection.py</code></pre>
+
+  <p>Expected output:</p>
+
+  <pre><code>✓ Config loaded successfully
+✓ AI provider connected (ollama)
+✓ Test prompt completed in 1.2s
+Ready to process meetings!</code></pre>
+
+  <h2>Troubleshooting</h2>
+
+  <h3>Ollama not responding</h3>
+  <p>Make sure Ollama is running: <code>ollama serve</code></p>
+
+  <h3>API key not found</h3>
+  <p>Verify your environment variable is set: <code>echo $OPENAI_API_KEY</code></p>
+
+  <h3>Python module not found</h3>
+  <p>Install dependencies: <code>pip install -r requirements.txt</code></p>
+
+  <h2>Next Steps</h2>
+
+  <p>
+    Now that your foundation is set up, continue to
+    <a href="/docs/meeting-processing">Meeting Processing</a> to enable AI-powered summaries.
+  </p>
+</DocsLayout>

@@ -1,0 +1,422 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+---
+
+<DocsLayout title="RAG Search">
+  <h1>RAG Search</h1>
+
+  <p>
+    The RAG (Retrieval-Augmented Generation) Search module enables semantic search across your entire
+    knowledge base using vector embeddings. Instead of keyword matching, you can ask questions in natural
+    language and retrieve contextually relevant information from all your processed content.
+  </p>
+
+  <h2>Prerequisites</h2>
+
+  <ul>
+    <li><strong>Foundation module</strong> completed (vault structure and AI provider configured)</li>
+    <li><strong>Meeting Processing module</strong> completed (enriched notes ready to embed)</li>
+    <li><strong>Docker</strong> installed for running Qdrant vector database</li>
+    <li>~30 minutes to complete setup</li>
+  </ul>
+
+  <h2>What You'll Get</h2>
+
+  <ul>
+    <li><strong>Vector Embeddings</strong> - Semantic representations of all your meeting notes and documents</li>
+    <li><strong>Semantic Search</strong> - Find information by meaning, not just keywords</li>
+    <li><strong>Context Retrieval</strong> - Pull relevant passages for AI-powered answers</li>
+    <li><strong>Metadata Filtering</strong> - Filter by person, date, type, category, or tags</li>
+    <li><strong>FastAPI Service</strong> - Optional REST API for integration with other tools</li>
+  </ul>
+
+  <h2 id="qdrant-setup">Qdrant Setup</h2>
+
+  <p>
+    Qdrant is a vector database that stores and searches embeddings. We'll run it locally using Docker.
+  </p>
+
+  <h3>Step 1: Start Qdrant</h3>
+
+  <p>Run Qdrant as a Docker container:</p>
+
+  <pre><code>{`docker run -d -p 6333:6333 -p 6334:6334 \\
+  -v $(pwd)/qdrant_storage:/qdrant/storage:z \\
+  qdrant/qdrant:latest`}</code></pre>
+
+  <p>This will:</p>
+  <ul>
+    <li>Run Qdrant in detached mode (<code>-d</code>)</li>
+    <li>Expose port 6333 for API access</li>
+    <li>Persist data to <code>./qdrant_storage</code> on your machine</li>
+    <li>Start automatically on system boot (unless stopped)</li>
+  </ul>
+
+  <h3>Step 2: Verify Qdrant is Running</h3>
+
+  <pre><code>curl http://localhost:6333/healthz</code></pre>
+
+  <p>Expected response: <code>{'{"title":"healthz","version":"1.x.x"}'}</code></p>
+
+  <h2 id="embedding">Embedding Scripts</h2>
+
+  <p>
+    The <code>embed_to_qdrant.py</code> script takes your markdown files, generates vector embeddings,
+    and stores them in Qdrant for fast semantic search.
+  </p>
+
+  <h3>How It Works</h3>
+
+  <ol>
+    <li><strong>Read</strong> - Parses frontmatter (tags, attendees, category) and content</li>
+    <li><strong>Chunk</strong> - Splits documents into ~1200 character chunks with 200 char overlap</li>
+    <li><strong>Embed</strong> - Generates 768-dimensional vectors using your chosen embedding model</li>
+    <li><strong>Store</strong> - Uploads to Qdrant with metadata for filtering</li>
+    <li><strong>Dedupe</strong> - Skips unchanged files, tombstones old versions</li>
+  </ol>
+
+  <h3>Metadata Extraction</h3>
+
+  <p>The script automatically extracts from frontmatter:</p>
+
+  <ul>
+    <li><strong>people</strong> - From <code>attendees</code>, <code>people</code>, or <code>participants</code></li>
+    <li><strong>tags</strong> - From <code>tags</code> or <code>tag</code></li>
+    <li><strong>category</strong> - From <code>category</code> or <code>project</code> (legacy)</li>
+    <li><strong>type</strong> - Inferred from category, tags, or folder path (meeting, one-on-one, email, etc.)</li>
+  </ul>
+
+  <h2 id="local-llm-setup">Local LLM Setup (Privacy-First)</h2>
+
+  <p>
+    For maximum privacy, use <strong>Ollama</strong> to generate embeddings locally. Your data never leaves your machine.
+  </p>
+
+  <h3>Step 1: Install Ollama</h3>
+
+  <p>Download from <a href="https://ollama.ai" target="_blank" rel="noopener">ollama.ai</a> and install.</p>
+
+  <h3>Step 2: Pull an Embedding Model</h3>
+
+  <pre><code>ollama pull nomic-embed-text</code></pre>
+
+  <p>
+    <strong>Note:</strong> The current scripts use Vertex AI for embeddings by default. To use Ollama,
+    you'll need to modify the embedding backend in <code>embed_to_qdrant.py</code> (set <code>EMBED_BACKEND=ollama</code>
+    or use sentence-transformers with <code>EMBED_BACKEND=st</code>).
+  </p>
+
+  <h3>Using Sentence Transformers (Fully Local)</h3>
+
+  <p>Install the sentence-transformers library:</p>
+
+  <pre><code>pip install sentence-transformers</code></pre>
+
+  <p>Set environment variable:</p>
+
+  <pre><code>export EMBED_BACKEND=st
+export ST_MODEL=BAAI/bge-large-en-v1.5</code></pre>
+
+  <p>
+    This downloads a ~1GB model once and runs entirely on your CPU/GPU. No API keys, no cloud calls.
+  </p>
+
+  <h2 id="cloud-embeddings">Cloud Embeddings</h2>
+
+  <p>
+    Cloud embedding services offer faster processing and require less local compute, but send your
+    content to external APIs.
+  </p>
+
+  <h3>Vertex AI (Google Cloud) - Default</h3>
+
+  <p>The scripts use Vertex AI's <code>text-embedding-004</code> model by default.</p>
+
+  <pre><code># Set these environment variables
+export GOOGLE_CLOUD_PROJECT=your-project-id
+export GOOGLE_CLOUD_LOCATION=us-central1
+export GEMINI_EMBED_MODEL=text-embedding-004
+export EMBED_DIM=768</code></pre>
+
+  <p>Authenticate with gcloud:</p>
+
+  <pre><code>gcloud auth application-default login --project your-project-id</code></pre>
+
+  <h3>OpenAI Embeddings</h3>
+
+  <p>To use OpenAI's <code>text-embedding-3-large</code> model:</p>
+
+  <pre><code># Set environment variables
+export EMBED_BACKEND=openai
+export OPENAI_API_KEY=sk-...
+export OPENAI_EMBEDDING_MODEL=text-embedding-3-large</code></pre>
+
+  <p>
+    <strong>Cost:</strong> ~$0.13 per 1M tokens (~750k words). A typical meeting transcript costs $0.001-0.01.
+  </p>
+
+  <h2 id="running">Running Embeddings</h2>
+
+  <h3>Embed a Single File</h3>
+
+  <pre><code>cd ~/Documents/MyVault
+python scripts/embed_to_qdrant.py \
+  --path "Meetings/12-09-25 - Staff Meeting.md" \
+  --type meeting \
+  --collection personal_assistant</code></pre>
+
+  <h3>Embed an Entire Folder (Batch Mode)</h3>
+
+  <pre><code>python scripts/embed_to_qdrant.py \
+  --input "Meetings" \
+  --input "People" \
+  --recursive \
+  --ext md \
+  --vault-root ~/Documents/MyVault \
+  --collection personal_assistant</code></pre>
+
+  <p>This will:</p>
+  <ul>
+    <li>Recursively scan <code>Meetings/</code> and <code>People/</code> folders</li>
+    <li>Process all <code>.md</code> files</li>
+    <li>Use relative paths from vault root for stable document IDs</li>
+    <li>Skip unchanged files automatically</li>
+  </ul>
+
+  <h3>Force Re-embedding</h3>
+
+  <p>To re-embed files even if unchanged:</p>
+
+  <pre><code>python scripts/embed_to_qdrant.py \
+  --input "Meetings" \
+  --recursive \
+  --force</code></pre>
+
+  <h3>Common Options</h3>
+
+  <ul>
+    <li><code>--force</code> - Re-embed even if content hash matches</li>
+    <li><code>--hard-delete-previous</code> - Physically delete old chunks instead of tombstoning</li>
+    <li><code>--debug</code> - Print frontmatter parsing and metadata resolution</li>
+    <li><code>--vault-root /path/to/vault</code> - Use relative paths for stable doc IDs</li>
+    <li><code>--doc-id-key uid</code> - Use frontmatter field as primary doc identifier</li>
+  </ul>
+
+  <h2 id="search">Search Interface</h2>
+
+  <p>
+    Use <code>search_qdrant_simple.py</code> for metadata-only searches (no embeddings required),
+    or the FastAPI service for full semantic search.
+  </p>
+
+  <h3>Metadata Search (Simple)</h3>
+
+  <p>Search by person, type, category, or tags without semantic matching:</p>
+
+  <pre><code># Find all meetings with Andrew
+python scripts/search_qdrant_simple.py --person Andrew --limit 10
+
+# Find one-on-ones from the last 30 days
+python scripts/search_qdrant_simple.py --type one-on-one --timeframe 30
+
+# Search by text in titles
+python scripts/search_qdrant_simple.py --text-search "platform strategy"</code></pre>
+
+  <h3>Semantic Search (FastAPI)</h3>
+
+  <p>For full semantic search with natural language queries, use the RAG API:</p>
+
+  <pre><code># Start the FastAPI server
+uvicorn qdrant_rag:app --host 0.0.0.0 --port 8123</code></pre>
+
+  <p>Then query via HTTP:</p>
+
+  <pre><code>{`curl -X POST http://localhost:8123/search \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "query": "what did we decide about the AWS outage?",
+    "limit": 5
+  }'`}</code></pre>
+
+  <h2 id="filtering">Metadata Filtering</h2>
+
+  <p>
+    The search system supports inline operators to filter results by metadata:
+  </p>
+
+  <h3>Filter Operators</h3>
+
+  <ul>
+    <li><code>tag:platform-resiliency</code> - Filter by tag</li>
+    <li><code>person:andrew</code> - Filter by attendee (case-insensitive)</li>
+    <li><code>category:sync-meeting</code> - Filter by category</li>
+    <li><code>type:one-on-one</code> - Filter by document type</li>
+    <li><code>after:2025-10-01</code> - Only documents after this date</li>
+    <li><code>before:2025-12-31</code> - Only documents before this date</li>
+  </ul>
+
+  <h3>Example Queries</h3>
+
+  <pre><code># One-on-ones with Jason from the last month
+python scripts/search_qdrant_simple.py \
+  --person jason \
+  --type one-on-one \
+  --timeframe 30
+
+# Platform resilience discussions tagged with AWS
+python scripts/search_qdrant_simple.py \
+  --text-search "outage" \
+  --tags platform-resiliency aws
+
+# All emails about Compass Assistant
+python scripts/search_qdrant_simple.py \
+  --type email \
+  --text-search "compass assistant"</code></pre>
+
+  <h2 id="rag-queries">RAG Queries</h2>
+
+  <p>
+    The <code>/ask</code> endpoint combines semantic search with LLM-powered answers, citing sources inline.
+  </p>
+
+  <h3>Ask a Question</h3>
+
+  <pre><code>{`curl -X POST http://localhost:8123/ask \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "query": "summarize Jason's 1:1 last week person:jason category:one-on-one",
+    "k": 8
+  }'`}</code></pre>
+
+  <p>Response format:</p>
+
+  <pre><code>{`{
+  "answer": "Jason discussed three main topics: ...",
+  "sources": [
+    {
+      "id": "abc123",
+      "score": 0.89,
+      "title": "1:1 with Jason Chen",
+      "snippet": "We talked about...",
+      "path": "Meetings/2025/Q425/12-02-25 - 1-1 with Jason.md",
+      "people": ["jason", "erik"],
+      "tags": ["one-on-one", "coaching"],
+      "type": "one-on-one"
+    }
+  ]
+}`}</code></pre>
+
+  <h3>How It Works</h3>
+
+  <ol>
+    <li><strong>Parse query</strong> - Extract filters (person, tag, type, date) and free text</li>
+    <li><strong>Embed query</strong> - Generate vector for semantic matching</li>
+    <li><strong>Search</strong> - Find top K most relevant chunks using cosine similarity</li>
+    <li><strong>Retrieve context</strong> - Extract text snippets from matched chunks</li>
+    <li><strong>Generate answer</strong> - Send context + query to LLM for synthesis</li>
+    <li><strong>Cite sources</strong> - Include [S1], [S2] markers in the answer</li>
+  </ol>
+
+  <h2 id="verify">Verify It Works</h2>
+
+  <h3>Step 1: Embed Sample Documents</h3>
+
+  <pre><code>python scripts/embed_to_qdrant.py \
+  --input "Meetings" \
+  --recursive \
+  --ext md \
+  --collection personal_assistant</code></pre>
+
+  <p>Expected output:</p>
+
+  <pre><code>{`{
+  "status": "ok",
+  "count_processed": 15,
+  "count_errors": 0,
+  "collection": "personal_assistant",
+  "model": "text-embedding-004",
+  "embed_dim": 768,
+  "items": [# additional items]
+}`}</code></pre>
+
+  <h3>Step 2: Search by Metadata</h3>
+
+  <pre><code>python scripts/search_qdrant_simple.py --person erik --limit 5</code></pre>
+
+  <p>Expected output:</p>
+
+  <pre><code>Found 5 results:
+
+1. Q1 roadmap planning and budget review
+   Type: meeting | Category: team-meeting
+   People: erik, sarah, jason
+   Tags: planning, budget, roadmap
+
+2. 1:1 with Sarah Chen
+   Type: one-on-one | Category: one-on-one
+   People: erik, sarah
+   Tags: one-on-one, coaching, growth</code></pre>
+
+  <h3>Step 3: Test Semantic Search (Optional)</h3>
+
+  <p>Start the API server:</p>
+
+  <pre><code>uvicorn qdrant_rag:app --port 8123</code></pre>
+
+  <p>Query the search endpoint:</p>
+
+  <pre><code>{`curl -X POST http://localhost:8123/search \\
+  -H "Content-Type: application/json" \\
+  -d '{"query": "AWS outage platform resilience", "limit": 3}'`}</code></pre>
+
+  <p>You should get semantically relevant results even if the exact keywords don't match.</p>
+
+  <h2>Troubleshooting</h2>
+
+  <h3>Qdrant not running</h3>
+  <p>
+    Check if the Docker container is running: <code>docker ps | grep qdrant</code>
+  </p>
+  <p>
+    Start it if stopped: <code>docker start &lt;container-id&gt;</code>
+  </p>
+
+  <h3>Embedding errors: "Missing dependency"</h3>
+  <p>
+    Install required packages:
+  </p>
+  <pre><code>pip install qdrant-client google-cloud-aiplatform pyyaml</code></pre>
+
+  <h3>Authentication failed (Vertex AI)</h3>
+  <p>
+    Ensure you've authenticated with gcloud and set the required environment variables:
+  </p>
+  <pre><code>gcloud auth application-default login --project your-project-id
+export GOOGLE_CLOUD_PROJECT=your-project-id
+export GOOGLE_CLOUD_LOCATION=us-central1</code></pre>
+
+  <h3>Search returns no results</h3>
+  <p>
+    Verify documents were embedded successfully:
+  </p>
+  <pre><code># Check collection stats
+curl http://localhost:6333/collections/personal_assistant</code></pre>
+  <p>
+    Look for <code>"points_count"</code> - if it's 0, no documents were embedded.
+  </p>
+
+  <h3>Dimension mismatch error</h3>
+  <p>
+    The embedding model must match the dimension configured during collection creation.
+    Vertex AI's <code>text-embedding-004</code> produces 768-dim vectors. If you change models,
+    you may need to recreate the collection or use a different collection name.
+  </p>
+
+  <h2>Next Steps</h2>
+
+  <p>
+    Now that you have semantic search working, continue to
+    <a href="/docs/calendar">Calendar Integration</a> to generate proactive meeting briefs
+    using your searchable knowledge base.
+  </p>
+</DocsLayout>

@@ -1,0 +1,303 @@
+{
+  "name": "AI Meeting Processor",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "{{VAULT_PATH}}/Meetings/",
+        "event": "add",
+        "options": {}
+      },
+      "name": "Watch Meetings Folder",
+      "type": "n8n-nodes-base.fileSystemTrigger",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "file-watcher-meetings",
+      "notesInFlow": [
+        {
+          "note": "Triggers when a new meeting file is added to the Meetings folder.\n\nCUSTOMIZE: Replace {{VAULT_PATH}} with your actual vault path, e.g., /Users/yourname/Documents/MyVault"
+        }
+      ]
+    },
+    {
+      "parameters": {
+        "filePath": "={{ $json.path }}",
+        "options": {}
+      },
+      "name": "Read Meeting File",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Detect meeting type from filename and content\nconst filename = $input.item.json.path.split('/').pop();\nconst content = $input.item.binary.data.toString('utf-8');\n\n// Check if this is a 1:1 meeting (looks for patterns like \"Erik / Jason\" or \"1-1\" or \"1:1\")\nconst isOneOnOne = (\n  filename.match(/\\s+\\/\\s+/) ||  // Name / Name pattern\n  filename.match(/1[-:]1/i) ||   // 1-1 or 1:1\n  content.match(/category:\\s*one-on-one/i)\n);\n\n// Extract file path for processing\nconst filePath = $input.item.json.path;\nconst relativeFilePath = filePath.replace('{{VAULT_PATH}}/', '');\n\nreturn {\n  json: {\n    filePath: filePath,\n    relativeFilePath: relativeFilePath,\n    filename: filename,\n    meetingType: isOneOnOne ? 'one-on-one' : 'group',\n    content: content\n  }\n};"
+      },
+      "name": "Detect Meeting Type",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300],
+      "notesInFlow": [
+        {
+          "note": "Analyzes the filename and content to determine if this is a 1:1 or group meeting.\n\nUses patterns like:\n- \"Erik / Jason\" (slash between names)\n- \"1-1\" or \"1:1\" in filename\n- category: one-on-one in frontmatter"
+        }
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.meetingType }}",
+                    "rightValue": "one-on-one",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "one-on-one"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.meetingType }}",
+                    "rightValue": "group",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "group"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Route by Meeting Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "command": "cd {{VAULT_PATH}} && python scripts/process_one-on-one_notes.py \"={{ $json.relativeFilePath }}\"",
+        "options": {}
+      },
+      "name": "Process 1:1 Meeting",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1050, 200],
+      "notesInFlow": [
+        {
+          "note": "Runs the 1:1 meeting processor:\n- Generates summary\n- Extracts action items\n- Links to people notes\n- Updates frontmatter\n\nCUSTOMIZE: Adjust paths and environment variables as needed"
+        }
+      ]
+    },
+    {
+      "parameters": {
+        "command": "cd {{VAULT_PATH}} && python scripts/process_mtg_notes.py \"={{ $json.relativeFilePath }}\"",
+        "options": {}
+      },
+      "name": "Process Group Meeting",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1050, 400],
+      "notesInFlow": [
+        {
+          "note": "Runs the group meeting processor:\n- Generates summary\n- Extracts action items\n- Categorizes meeting\n- Updates frontmatter\n\nCUSTOMIZE: Adjust paths and environment variables as needed"
+        }
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Parse processing output and extract key information\nconst output = $input.item.json.stdout || '';\nconst stderr = $input.item.json.stderr || '';\n\n// Check for success indicators\nconst success = (\n  output.includes('✓') ||\n  output.includes('Step') ||\n  !stderr.includes('Error')\n);\n\n// Extract processing steps\nconst steps = output.match(/Step [ABC\\d]:.+/g) || [];\n\nreturn {\n  json: {\n    success: success,\n    output: output,\n    errors: stderr,\n    steps: steps,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "name": "Parse Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.success }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Check Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Log successful processing\nconsole.log(`✓ Meeting processed successfully: ${$input.item.json.relativeFilePath}`);\nconsole.log(`Steps completed: ${$input.item.json.steps.length}`);\n\nreturn {\n  json: {\n    message: 'Meeting processed successfully',\n    file: $input.item.json.relativeFilePath,\n    timestamp: $input.item.json.timestamp\n  }\n};"
+      },
+      "name": "Log Success",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1650, 200]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Log processing errors\nconsole.error(`✗ Meeting processing failed: ${$input.item.json.relativeFilePath}`);\nconsole.error(`Errors: ${$input.item.json.errors}`);\n\nreturn {\n  json: {\n    message: 'Meeting processing failed',\n    file: $input.item.json.relativeFilePath,\n    errors: $input.item.json.errors,\n    timestamp: $input.item.json.timestamp\n  }\n};"
+      },
+      "name": "Log Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1650, 400]
+    }
+  ],
+  "connections": {
+    "Watch Meetings Folder": {
+      "main": [
+        [
+          {
+            "node": "Read Meeting File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Meeting File": {
+      "main": [
+        [
+          {
+            "node": "Detect Meeting Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Meeting Type": {
+      "main": [
+        [
+          {
+            "node": "Route by Meeting Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Meeting Type": {
+      "main": [
+        [
+          {
+            "node": "Process 1:1 Meeting",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Process Group Meeting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process 1:1 Meeting": {
+      "main": [
+        [
+          {
+            "node": "Parse Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Group Meeting": {
+      "main": [
+        [
+          {
+            "node": "Parse Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Results": {
+      "main": [
+        [
+          {
+            "node": "Check Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Success": {
+      "main": [
+        [
+          {
+            "node": "Log Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-12-09T00:00:00.000Z",
+  "versionId": "1"
+}

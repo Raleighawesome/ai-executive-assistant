@@ -1,0 +1,65 @@
+---
+const modules = [
+  {
+    name: 'Foundation',
+    description: 'Obsidian vault setup and AI provider configuration',
+    href: '/docs/foundation',
+    status: 'available',
+  },
+  {
+    name: 'Meeting Processing',
+    description: 'AI-powered summaries, action items, and metadata',
+    href: '/docs/meeting-processing',
+    status: 'available',
+  },
+  {
+    name: 'RAG Search',
+    description: 'Semantic search across your entire knowledge base',
+    href: '/docs/rag-search',
+    status: 'available',
+  },
+  {
+    name: 'Calendar Integration',
+    description: 'Proactive meeting briefs with relevant context',
+    href: '/docs/calendar',
+    status: 'available',
+  },
+  {
+    name: 'Automation',
+    description: 'n8n workflows for hands-free processing',
+    href: '/docs/automation',
+    status: 'available',
+  },
+];
+---
+
+<section class="py-20 bg-surface">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-12">
+      <h2 class="text-3xl font-bold text-text-primary mb-4">Modular by Design</h2>
+      <p class="text-text-secondary max-w-2xl mx-auto">
+        Start with what you need, add capabilities over time. Each module works independently.
+      </p>
+    </div>
+
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {modules.map((module) => (
+        <a href={module.href} class="card group hover:border-accent/50 transition-all hover:-translate-y-1">
+          <div class="flex items-start justify-between mb-3">
+            <h3 class="text-lg font-semibold text-text-primary group-hover:text-accent transition-colors">
+              {module.name}
+            </h3>
+            <span class={`text-xs font-medium px-2 py-1 rounded-full ${
+              module.status === 'available'
+                ? 'bg-green-500/10 text-green-400'
+                : 'bg-yellow-500/10 text-yellow-400'
+            }`}>
+              {module.status === 'available' ? 'Available' : 'Coming Soon'}
+            </span>
+          </div>
+          <p class="text-text-secondary text-sm">{module.description}</p>
+        </a>
+      ))}
+    </div>
+  </div>
+</section>

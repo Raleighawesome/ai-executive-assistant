@@ -1,0 +1,40 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SetupWizard } from '../components/wizard/SetupWizard';
+---
+
+<BaseLayout title="Setup Wizard" description="Generate your custom AI Executive Assistant configuration in minutes">
+  <div class="pt-24 pb-16">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- Header -->
+      <div class="text-center mb-12">
+        <h1 class="text-4xl font-bold text-text-primary mb-4">Setup Wizard</h1>
+        <p class="text-lg text-text-secondary max-w-2xl mx-auto">
+          Answer a few questions and get a customized configuration package ready to deploy.
+        </p>
+      </div>
+
+      <!-- Wizard Component (React Island) -->
+      <SetupWizard client:load />
+
+      <!-- Help Section -->
+      <div class="mt-12 p-6 bg-surface-elevated rounded-lg border border-border max-w-3xl mx-auto">
+        <h2 class="text-lg font-semibold text-text-primary mb-3">Need Help?</h2>
+        <div class="space-y-2 text-sm text-text-secondary">
+          <p>
+            <strong class="text-text-primary">Not sure which AI provider to choose?</strong>
+            Check out our <a href="/docs/foundation#ai-providers" class="text-accent hover:underline">AI Provider Comparison Guide</a>.
+          </p>
+          <p>
+            <strong class="text-text-primary">Want to see the full documentation first?</strong>
+            Visit the <a href="/docs" class="text-accent hover:underline">Documentation Hub</a>.
+          </p>
+          <p>
+            <strong class="text-text-primary">Looking for manual setup instructions?</strong>
+            Start with <a href="/docs/foundation" class="text-accent hover:underline">Foundation Module</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

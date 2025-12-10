@@ -1,0 +1,347 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+---
+
+<DocsLayout title="Meeting Processing">
+  <h1>Meeting Processing</h1>
+
+  <p>
+    The Meeting Processing module transforms raw meeting transcripts into structured, searchable notes
+    with AI-generated summaries, action items, and metadata. This is the core value-add of the AI Executive Assistant.
+  </p>
+
+  <h2>Prerequisites</h2>
+
+  <ul>
+    <li><strong>Foundation module</strong> completed (vault structure and AI provider configured)</li>
+    <li><strong>Python 3.11+</strong> installed</li>
+    <li>~20 minutes to complete setup</li>
+  </ul>
+
+  <h2>What You'll Get</h2>
+
+  <ul>
+    <li><strong>Executive Summaries</strong> - 4-sentence distillation of key outcomes and decisions</li>
+    <li><strong>Topic Analysis</strong> - Structured breakdown with findings, challenges, and solutions</li>
+    <li><strong>Action Items</strong> - Extracted tasks in @Owner format for easy tracking</li>
+    <li><strong>Frontmatter Metadata</strong> - Auto-tagged with categories, attendees, dates, and links</li>
+    <li><strong>Transcript Archival</strong> - Raw transcripts separated into dedicated folder for clean notes</li>
+  </ul>
+
+  <h2 id="meeting-types">Meeting Types</h2>
+
+  <p>
+    The processing scripts support two distinct meeting types, each with specialized analysis:
+  </p>
+
+  <h3>Group Meetings</h3>
+
+  <p>
+    For team meetings, staff meetings, and project syncs. Analysis focuses on:
+  </p>
+
+  <ul>
+    <li>Topic-based summaries with findings and recommendations</li>
+    <li>Cross-functional challenges and solutions</li>
+    <li>Multiple attendees and action item distribution</li>
+    <li>Quarterly organization (Q425, Q125, etc.)</li>
+  </ul>
+
+  <h3>One-on-One Meetings</h3>
+
+  <p>
+    For personal check-ins and 1:1s. Analysis includes:
+  </p>
+
+  <ul>
+    <li>Coaching and growth opportunities</li>
+    <li>Professional development tracking</li>
+    <li>Automatic linking to person's note page</li>
+    <li>Growth witnessed and future coaching suggestions</li>
+  </ul>
+
+  <h2 id="setup">Setup</h2>
+
+  <h3>Step 1: Install Dependencies</h3>
+
+  <p>Create a <code>requirements.txt</code> file in your scripts folder:</p>
+
+  <pre><code>google-cloud-aiplatform>=1.38.0
+vertexai>=1.0.0
+pyyaml>=6.0</code></pre>
+
+  <p>Install the dependencies:</p>
+
+  <pre><code>pip install -r requirements.txt</code></pre>
+
+  <h3>Step 2: Download Processing Scripts</h3>
+
+  <p>Download the processing scripts to your vault's scripts folder:</p>
+
+  <pre><code>cd ~/Documents/MyVault/scripts
+curl -O https://example.com/process_mtg_notes.py
+curl -O https://example.com/process_one-on-one_notes.py
+curl -O https://example.com/transcript_archiver.py
+chmod +x *.py</code></pre>
+
+  <h3>Step 3: Configure Environment Variables</h3>
+
+  <p>
+    If you're using Vertex AI (Google Cloud), set these environment variables in your shell profile:
+  </p>
+
+  <pre><code># For Vertex AI only
+export GOOGLE_CLOUD_PROJECT=your-project-id
+export GOOGLE_IMPERSONATE_SERVICE_ACCOUNT=your-service-account@project.iam.gserviceaccount.com</code></pre>
+
+  <p>For other AI providers (Ollama, OpenAI, Claude), no environment variables are needed beyond API keys.</p>
+
+  <h2 id="executive-summary">Executive Summary</h2>
+
+  <p>
+    The 4-sentence executive summary is designed for leadership who need to quickly understand:
+  </p>
+
+  <ul>
+    <li><strong>What happened</strong> - Key decisions and outcomes</li>
+    <li><strong>Why it matters</strong> - Business impact and context</li>
+    <li><strong>What's next</strong> - Immediate action items and follow-ups</li>
+    <li><strong>What to watch</strong> - Risks, blockers, or dependencies</li>
+  </ul>
+
+  <p>
+    The summary uses informal, direct language and avoids corporate jargon. It's written to be read
+    standalone, without requiring the full transcript.
+  </p>
+
+  <h3>Example Executive Summary</h3>
+
+  <pre><code>## Executive Summary
+
+We aligned on the Q1 roadmap priorities and identified three critical dependencies
+on the platform team. Budget approval is needed by end of week to avoid a two-week
+slip in the delivery timeline. The team raised concerns about resource allocation
+for the new feature set, which we'll address in Friday's planning session. Overall
+momentum is good, but we need to lock down the API contract by next Monday to stay
+on track.</code></pre>
+
+  <h2 id="topic-analysis">Topic Analysis</h2>
+
+  <p>
+    The AI automatically identifies key topics discussed in the meeting and structures them with:
+  </p>
+
+  <ul>
+    <li><strong>Key Findings</strong> - What was discovered or decided</li>
+    <li><strong>Challenges</strong> - Obstacles, blockers, or concerns raised</li>
+    <li><strong>Potential Solutions</strong> - Proposed approaches to address challenges</li>
+    <li><strong>Recommendations</strong> - Suggested next steps or decisions needed</li>
+  </ul>
+
+  <h3>Example Topic Analysis</h3>
+
+  <pre><code>## Summary & Analysis
+
+**Budget Review**
+- **Key Findings**: Current burn rate is 15% below forecast, giving us headroom for Q2 hiring
+- **Challenges**: Engineering budget is constrained by infrastructure costs growing faster than expected
+- **Potential Solutions**: Renegotiate cloud contracts or shift some workloads to reserved instances
+- **Recommendations**: Schedule deep-dive with FinOps team to optimize cloud spend
+
+**Roadmap Priorities**
+- **Key Findings**: Stakeholders aligned on prioritizing mobile app over web redesign
+- **Challenges**: Mobile team is at capacity and can't start until Q2 without adding headcount
+- **Potential Solutions**: Contract with external agency for initial prototyping phase
+- **Recommendations**: Get budget approval for 2 contract positions by end of week</code></pre>
+
+  <h2 id="action-items">Action Items</h2>
+
+  <p>
+    The AI extracts all action items from the transcript and formats them consistently:
+  </p>
+
+  <pre><code>## Action Items
+
+- [ ] @Erik — Schedule budget review with FinOps team
+- [ ] @Sarah — Draft contract job description for mobile developers
+- [ ] @Team — Review and comment on API contract by Monday
+- [ ] @Jason — Update stakeholders on timeline change</code></pre>
+
+  <p>
+    This format is compatible with Obsidian's task tracking plugins and can be queried using Dataview.
+  </p>
+
+  <h2 id="frontmatter">Frontmatter Enhancement</h2>
+
+  <p>
+    The scripts automatically add structured metadata to the top of each note:
+  </p>
+
+  <pre><code>---
+title: "Q1 roadmap planning and budget review"
+category: team-meeting
+tags:
+  - planning
+  - budget
+  - roadmap
+attendees:
+  - erik
+  - sarah
+  - jason
+links:
+  - "[[@ Sarah Chen]]"
+  - "[[@ Jason Smith]]"
+year: 2025
+quarter: Q1
+---</code></pre>
+
+  <h3>Metadata Fields</h3>
+
+  <ul>
+    <li><strong>title</strong> - Auto-generated summary (under 20 words)</li>
+    <li><strong>category</strong> - Meeting type (e.g., team-meeting, one-on-one, planning)</li>
+    <li><strong>tags</strong> - Topical tags from your Tag Reference file</li>
+    <li><strong>attendees</strong> - List of participant first names</li>
+    <li><strong>links</strong> - WikiLinks to attendee person notes (format: [[@ First Last]])</li>
+    <li><strong>year</strong> - Extracted from filename (MM-DD-YY format)</li>
+    <li><strong>quarter</strong> - Auto-calculated from meeting date</li>
+  </ul>
+
+  <h2 id="prompts">Customizing Prompts</h2>
+
+  <p>
+    The analysis prompts are embedded in the Python scripts. To customize the AI's analysis style:
+  </p>
+
+  <h3>For Group Meetings</h3>
+
+  <p>Edit <code>process_mtg_notes.py</code> and modify the <code>STEP_A_PROMPT</code> variable (around line 261):</p>
+
+  <pre><code>STEP_A_PROMPT = """
+You are an expert executive assistant. Based on the meeting notes...
+
+## Executive Summary
+[Your custom instructions here]
+
+## Topics Covered
+[Your custom instructions here]
+"""</code></pre>
+
+  <h3>For One-on-One Meetings</h3>
+
+  <p>Edit <code>process_one-on-one_notes.py</code> and modify the <code>STEP_A_PROMPT</code> variable (around line 356):</p>
+
+  <pre><code>STEP_A_PROMPT = """
+Based on the meeting notes...
+
+## Coaching & Growth
+- **Growth Witnessed**: [Your custom instructions]
+- **Growth Opportunities**: [Your custom instructions]
+"""</code></pre>
+
+  <h2 id="manual">Running Manually</h2>
+
+  <p>
+    Process a single meeting note by running the script from your vault root:
+  </p>
+
+  <h3>Group Meeting</h3>
+
+  <pre><code>cd ~/Documents/MyVault
+./scripts/process_mtg_notes.py "Meetings/12-09-25 - Staff Meeting.md"</code></pre>
+
+  <h3>One-on-One Meeting</h3>
+
+  <pre><code>cd ~/Documents/MyVault
+./scripts/process_one-on-one_notes.py "Meetings/12-09-25 - 1-1 with Sarah.md"</code></pre>
+
+  <h3>Processing Steps</h3>
+
+  <p>The script will:</p>
+
+  <ol>
+    <li><strong>Step 0</strong> - Normalize common name variations (Eric → Erik, etc.)</li>
+    <li><strong>Step A</strong> - Generate executive summary and topic analysis (30-60 seconds)</li>
+    <li><strong>Step B</strong> - Enhance frontmatter with tags, links, and metadata (20-30 seconds)</li>
+    <li><strong>Step 2.5</strong> - Extract year/quarter from filename</li>
+    <li><strong>Step 3</strong> - Archive transcript to separate file</li>
+    <li><strong>Step 4</strong> - Clean up any code block formatting</li>
+  </ol>
+
+  <h2 id="verify">Verify It Works</h2>
+
+  <p>Create a test meeting note to verify the setup:</p>
+
+  <pre><code>cd ~/Documents/MyVault/Meetings
+cat > "12-09-25 - Test Meeting.md" << 'EOF'
+# Test Meeting
+
+**Attendees:** Erik, Sarah, Jason
+
+**Discussion:**
+- Reviewed Q1 budget and confirmed we're under forecast
+- Decided to prioritize mobile app over web redesign
+- Need to hire 2 contract developers by end of week
+
+**Action Items:**
+- Erik will schedule follow-up with FinOps
+- Sarah will draft job descriptions
+- Jason will update stakeholders on timeline
+EOF</code></pre>
+
+  <p>Process the test note:</p>
+
+  <pre><code>cd ~/Documents/MyVault
+./scripts/process_mtg_notes.py "Meetings/12-09-25 - Test Meeting.md"</code></pre>
+
+  <p>Expected output:</p>
+
+  <pre><code>Processing Meetings/12-09-25 - Test Meeting.md...
+Step 0 (Prompt A): Normalizing names and acronyms...
+Step 0 (Prompt A): Complete.
+Step 1 (Prompt B): Generating summary and analysis...
+Step 1 (Prompt B): Summary prepended (after front-matter).
+Step 2 (Prompt C): Generating and merging front-matter...
+Step 2 (Prompt C): Front-matter merged.
+Step 2.5: Ensuring year/quarter from filename...
+Step 2.5: added year, added quarter
+Step 3: Archiving transcript...
+Step 3: transcript archived to Transcripts/12-09-25 - Test Meeting - transcript.md
+Step 4: Cleaning up any code block formatting...
+Step 4: No code block formatting found at top of file.
+All steps complete for Meetings/12-09-25 - Test Meeting.md.
+Logged: 2,341 in / 892 out = $0.12</code></pre>
+
+  <h2>Troubleshooting</h2>
+
+  <h3>Error: Vertex AI authentication failed</h3>
+  <p>
+    Ensure you've set <code>GOOGLE_CLOUD_PROJECT</code> and <code>GOOGLE_IMPERSONATE_SERVICE_ACCOUNT</code> environment variables.
+    For other providers, check your API key is set correctly.
+  </p>
+
+  <h3>Error: Reference file not found</h3>
+  <p>
+    The script expects a Tag Reference file at <code>Templates/Tag Reference.md</code> in your vault.
+    Create this file with your tag taxonomy and meeting categories.
+  </p>
+
+  <h3>Processing is slow (90+ seconds)</h3>
+  <p>
+    This is normal for large transcripts (10,000+ words). Consider switching to a faster model like
+    <code>gemini-1.5-flash</code> or <code>gpt-4o-mini</code> in your config.
+  </p>
+
+  <h3>Action items not being extracted</h3>
+  <p>
+    Make sure your transcript includes clear action language like "will do", "needs to", "action item",
+    or explicit task lists. The AI looks for commitment language and responsibility assignments.
+  </p>
+
+  <h2>Next Steps</h2>
+
+  <p>
+    Now that your meetings are being processed and enriched, continue to
+    <a href="/docs/rag-search">RAG Search</a> to enable semantic search across your entire knowledge base.
+  </p>
+</DocsLayout>

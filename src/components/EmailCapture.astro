@@ -1,0 +1,43 @@
+---
+
+---
+
+<section id="notify" class="py-20">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="card max-w-xl mx-auto text-center">
+      <h2 class="text-2xl font-bold text-text-primary mb-4">Get Notified on Launch</h2>
+      <p class="text-text-secondary mb-6">
+        Be the first to know when new modules are available. No spam, unsubscribe anytime.
+      </p>
+
+      <form
+        action="https://buttondown.email/api/emails/embed-subscribe/aiexecassistant"
+        method="post"
+        target="popupwindow"
+        class="flex flex-col sm:flex-row gap-3"
+      >
+        <input
+          type="email"
+          name="email"
+          placeholder="you@example.com"
+          required
+          class="flex-1 px-4 py-3 bg-surface border border-border rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
+        />
+        <button type="submit" class="btn-primary whitespace-nowrap">
+          Subscribe
+        </button>
+      </form>
+
+      <p class="text-text-muted text-xs mt-4">
+        We respect your privacy. Your email is only used for launch notifications.
+      </p>
+    </div>
+  </div>
+</section>
+
+<script>
+  // Connect the "Notify Me" button in Hero to scroll here
+  document.getElementById('notify-btn')?.addEventListener('click', () => {
+    document.getElementById('notify')?.scrollIntoView({ behavior: 'smooth' });
+  });
+</script>

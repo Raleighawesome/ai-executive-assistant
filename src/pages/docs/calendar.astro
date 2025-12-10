@@ -1,0 +1,555 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+---
+
+<DocsLayout title="Calendar Integration">
+  <h1>Calendar Integration</h1>
+
+  <p>
+    The Calendar Integration module enables proactive meeting preparation by fetching your Google Calendar
+    events, matching attendees to your People notes, and generating context-rich pre-meeting briefs using
+    your searchable knowledge base.
+  </p>
+
+  <h2>Prerequisites</h2>
+
+  <ul>
+    <li><strong>Foundation module</strong> completed (vault structure configured)</li>
+    <li><strong>Meeting Processing module</strong> completed (enriched notes with attendees)</li>
+    <li><strong>RAG Search module</strong> completed (semantic search available)</li>
+    <li><strong>Google account</strong> with Calendar access</li>
+    <li>~25 minutes to complete setup</li>
+  </ul>
+
+  <h2>What You'll Get</h2>
+
+  <ul>
+    <li><strong>Calendar Event Retrieval</strong> - Fetch today's meetings with attendees and metadata</li>
+    <li><strong>Attendee Matching</strong> - Map calendar emails to your People notes automatically</li>
+    <li><strong>Pre-Meeting Briefs</strong> - Generate context for each meeting from relevant past notes</li>
+    <li><strong>Daily Briefing</strong> - Consolidated view of today's schedule with action items and context</li>
+    <li><strong>Smart Filtering</strong> - Exclude declined events and working location markers</li>
+  </ul>
+
+  <h2 id="google-setup">Google Calendar Setup</h2>
+
+  <p>
+    To access your Google Calendar programmatically, you need to create OAuth2 credentials in the
+    Google Cloud Console.
+  </p>
+
+  <h3>Step 1: Create a Google Cloud Project</h3>
+
+  <ol>
+    <li>Go to <a href="https://console.cloud.google.com" target="_blank" rel="noopener">Google Cloud Console</a></li>
+    <li>Create a new project or select an existing one</li>
+    <li>Enable the <strong>Google Calendar API</strong>:
+      <ul>
+        <li>Navigate to "APIs & Services" → "Library"</li>
+        <li>Search for "Google Calendar API"</li>
+        <li>Click "Enable"</li>
+      </ul>
+    </li>
+  </ol>
+
+  <h3>Step 2: Create OAuth2 Credentials</h3>
+
+  <ol>
+    <li>Go to "APIs & Services" → "Credentials"</li>
+    <li>Click "Create Credentials" → "OAuth client ID"</li>
+    <li>Configure consent screen if prompted:
+      <ul>
+        <li>User Type: External (or Internal if using Google Workspace)</li>
+        <li>App name: "AI Executive Assistant" (or your preference)</li>
+        <li>Add your email as a test user</li>
+      </ul>
+    </li>
+    <li>Application type: "Desktop app"</li>
+    <li>Name: "Calendar Integration"</li>
+    <li>Click "Create"</li>
+  </ol>
+
+  <h3>Step 3: Download Credentials</h3>
+
+  <ol>
+    <li>Click the download icon next to your newly created OAuth client</li>
+    <li>Save the JSON file as <code>~/.google/credentials.json</code></li>
+    <li>Create the directory if needed: <code>mkdir -p ~/.google</code></li>
+  </ol>
+
+  <p>
+    <strong>Security Note:</strong> Never commit <code>credentials.json</code> or <code>token.json</code>
+    to version control. These files contain sensitive authentication data.
+  </p>
+
+  <h2 id="oauth">OAuth Authentication</h2>
+
+  <p>
+    The first time you run a calendar script, it will open a browser window to authenticate with Google
+    and request calendar read permissions.
+  </p>
+
+  <h3>Initial Authentication</h3>
+
+  <pre><code>cd ~/Documents/MyVault/scripts/calendar-events
+./fetch_today_events.py</code></pre>
+
+  <p>This will:</p>
+
+  <ol>
+    <li>Open your default browser</li>
+    <li>Prompt you to sign in to your Google account</li>
+    <li>Ask permission to access your calendar (read-only)</li>
+    <li>Save an authentication token to <code>~/.google/token.json</code></li>
+  </ol>
+
+  <p>
+    <strong>Token Refresh:</strong> The token automatically refreshes when expired. If you encounter
+    authentication errors, delete <code>~/.google/token.json</code> and re-authenticate.
+  </p>
+
+  <h2 id="fetching">Fetching Events</h2>
+
+  <p>
+    The <code>fetch_today_events.py</code> script retrieves calendar events and outputs structured JSON
+    with event details and attendee information.
+  </p>
+
+  <h3>How It Works</h3>
+
+  <ol>
+    <li><strong>Authenticate</strong> - Uses OAuth2 token from <code>~/.google/token.json</code></li>
+    <li><strong>Query Calendar</strong> - Fetches events for specified date range (defaults to today)</li>
+    <li><strong>Filter Events</strong> - Excludes:
+      <ul>
+        <li>Working location markers (<code>eventType: "workingLocation"</code>)</li>
+        <li>Events you're not invited to</li>
+        <li>Future events you've declined</li>
+      </ul>
+    </li>
+    <li><strong>Extract Attendees</strong> - Collects emails of attendees who accepted or tentatively accepted</li>
+    <li><strong>Format Output</strong> - Returns JSON with dates, times, titles, attendees, and metadata</li>
+  </ol>
+
+  <h3>Usage Examples</h3>
+
+  <pre><code># Fetch today's events
+./fetch_today_events.py
+
+# Fetch specific date
+./fetch_today_events.py --date 2025-12-15
+
+# Fetch custom date range
+./fetch_today_events.py --start 2025-12-09 --end 2025-12-10
+
+# Fetch with debug output
+./fetch_today_events.py --debug</code></pre>
+
+  <h3>Output Format</h3>
+
+  <pre><code>{`{
+  "date": "2025-12-09",
+  "total_events": 3,
+  "events": [
+    {
+      "date": "2025-12-09",
+      "start_time": "09:00:00",
+      "end_time": "10:00:00",
+      "title": "Staff Meeting",
+      "accepted_attendees": [
+        "alice@company.com",
+        "bob@company.com"
+      ],
+      "event_id": "abc123...",
+      "location": "Conference Room A",
+      "description": "Weekly staff sync",
+      "organizer": "manager@company.com",
+      "status": "confirmed",
+      "html_link": "https://calendar.google.com/..."
+    }
+  ]
+}`}</code></pre>
+
+  <h2 id="attendees">Attendee Matching</h2>
+
+  <p>
+    The system automatically matches calendar attendee emails to People notes in your vault, enabling
+    context retrieval for meetings.
+  </p>
+
+  <h3>Matching Strategy</h3>
+
+  <ol>
+    <li><strong>Email Parsing</strong> - Extracts name components from email addresses:
+      <ul>
+        <li><code>alice.smith@company.com</code> → ["alice", "smith"]</li>
+        <li><code>bob-jones@company.com</code> → ["bob", "jones"]</li>
+      </ul>
+    </li>
+    <li><strong>Frontmatter Search</strong> - Looks for matches in People note frontmatter:
+      <ul>
+        <li><code>attendees</code> field in processed notes</li>
+        <li><code>links</code> field with <code>[[@ First Last]]</code> format</li>
+      </ul>
+    </li>
+    <li><strong>Filename Pattern</strong> - Checks for one-on-one patterns:
+      <ul>
+        <li><code>MM-DD-YY - Alice / Erik.md</code></li>
+        <li><code>MM-DD-YY - Bob 1:1.md</code></li>
+      </ul>
+    </li>
+    <li><strong>Fuzzy Matching</strong> - Uses difflib for title similarity when attendees overlap</li>
+  </ol>
+
+  <h3>People Note Format</h3>
+
+  <p>For best matching results, ensure your People notes use this format:</p>
+
+  <pre><code>---
+title: Alice Smith
+tags: [people, engineering]
+attendees:
+  - Alice Smith
+  - alice
+---
+
+# @ Alice Smith
+
+Notes about Alice...</code></pre>
+
+  <h2 id="briefs">Meeting Briefs</h2>
+
+  <p>
+    Pre-meeting briefs combine calendar event data with relevant historical context from your knowledge
+    base, surfacing action items and key discussion points.
+  </p>
+
+  <h3>How Briefs Are Generated</h3>
+
+  <ol>
+    <li><strong>Identify Event</strong> - Parse event title and attendees from calendar</li>
+    <li><strong>Search Context</strong> - Query Qdrant for semantically similar notes:
+      <ul>
+        <li>Filter by matching attendees</li>
+        <li>Filter by meeting/one-on-one type</li>
+        <li>Filter by current quarter (plus previous quarter if within 2 weeks)</li>
+        <li>Rank by semantic similarity score (threshold: 0.35)</li>
+      </ul>
+    </li>
+    <li><strong>Filesystem Fallback</strong> - If no semantic matches, use heuristic scoring:
+      <ul>
+        <li>Title similarity (40 points)</li>
+        <li>Attendee overlap (30 points)</li>
+        <li>Date recency (20 points)</li>
+        <li>Meeting type priority (15 points for 1:1s)</li>
+        <li>Keyword overlap (10 points)</li>
+        <li>Minimum threshold: 15 points</li>
+      </ul>
+    </li>
+    <li><strong>Extract Action Items</strong> - Find uncompleted tasks in format:
+      <ul>
+        <li><code>- [ ] @Owner — task description</code></li>
+        <li>Highlight items for today's attendees with ⭐</li>
+      </ul>
+    </li>
+    <li><strong>Quote Context</strong> - Extract relevant snippets (first 500 chars) from matched notes</li>
+  </ol>
+
+  <h3>Relevance Thresholds</h3>
+
+  <p>Configure matching sensitivity with environment variables:</p>
+
+  <pre><code># Semantic search minimum score (0.0-1.0)
+export MIN_QDRANT_SCORE=0.35
+
+# Filesystem fallback minimum score (0-100)
+export MIN_FALLBACK_SCORE=15
+
+# Title similarity when no attendees (0.0-1.0)
+export TITLE_SIM_THRESHOLD_NO_ATTENDEES=0.4
+
+# Maximum notes per event
+export MAX_NOTES_PER_EVENT=3</code></pre>
+
+  <h2 id="daily-briefing">Daily Briefing</h2>
+
+  <p>
+    The <code>create_daily_briefing.py</code> script generates a consolidated daily briefing file at
+    <code>Dashboard/Daily Briefing.md</code> with all of today's meetings and relevant context.
+  </p>
+
+  <h3>How It Works</h3>
+
+  <ol>
+    <li><strong>Read Calendar JSON</strong> - Accepts calendar data via stdin (designed for n8n integration)</li>
+    <li><strong>Retrieve Context</strong> - Searches for relevant notes for each event using the same matching logic as briefs</li>
+    <li><strong>Generate Briefing</strong> - Either:
+      <ul>
+        <li><strong>Deterministic Mode</strong> (default): Quote-only output with direct excerpts</li>
+        <li><strong>AI Mode</strong>: Uses Gemini 2.5 Pro to synthesize insights (requires Vertex AI auth)</li>
+      </ul>
+    </li>
+    <li><strong>Write to Vault</strong> - Overwrites <code>Dashboard/Daily Briefing.md</code> with timestamped content</li>
+  </ol>
+
+  <h3>Output Structure</h3>
+
+  <pre><code># Daily Briefing - 2025-12-09
+
+## Staff Meeting (09:00:00 - 10:00:00)
+
+### [[12-02-25 - Staff Meeting]]
+**Action Items (quote-only):**
+> - [ ] @Erik — Review Q4 budget allocation ⭐
+
+**Quoted Context:**
+> Discussed AWS outage mitigation strategy.
+> Team agreed to implement redundant failover.
+
+## 1:1 with Alice (14:00:00 - 15:00:00)
+
+### [[11-25-25 - Alice / Erik]]
+**Action Items (quote-only):**
+> - [ ] @Alice — Prepare architecture proposal
+
+**Quoted Context:**
+> Alice is working on the new microservices design.
+
+---
+*Generated at 2025-12-09 06:00:15*</code></pre>
+
+  <h3>Mode Configuration</h3>
+
+  <pre><code># Use deterministic quote-only mode (default, no AI required)
+export BRIEFING_DETERMINISTIC=1
+
+# Use AI synthesis mode (requires Vertex AI auth)
+export BRIEFING_DETERMINISTIC=0
+
+# Disable Qdrant (filesystem-only matching)
+export BRIEFING_DISABLE_QDRANT=1
+
+# Enable debug output
+export BRIEFING_DEBUG=1</code></pre>
+
+  <h2 id="customizing">Customizing Briefs</h2>
+
+  <p>
+    You can customize the briefing output by modifying the prompt template or adjusting scoring weights
+    in <code>create_daily_briefing.py</code>.
+  </p>
+
+  <h3>Prompt Template Location</h3>
+
+  <p>
+    The AI briefing prompt is defined in the <code>create_briefing_prompt()</code> function around
+    line 514. Key sections:
+  </p>
+
+  <ul>
+    <li><strong>Grounding Rules</strong> - Instructions for quote-only output</li>
+    <li><strong>Calendar Events</strong> - Today's schedule with attendees</li>
+    <li><strong>Relevant Excerpts</strong> - Context snippets with scores</li>
+  </ul>
+
+  <h3>Scoring Weight Adjustments</h3>
+
+  <p>
+    Modify the <code>calculate_relevance_score()</code> function around line 273 to adjust weights:
+  </p>
+
+  <pre><code># Title similarity (default: 40 points)
+score += title_similarity * 40
+
+# Attendee overlap (default: 30 points)
+score += attendee_score * 30
+
+# Date recency (default: 20 points)
+score += recency_score * 20
+
+# Meeting type (default: 15 for 1:1s, 10 for team)
+if 'one-on-one' in category:
+    score += 15</code></pre>
+
+  <h3>Adding Custom Filters</h3>
+
+  <p>
+    To filter events by category, location, or other metadata, modify the <code>get_relevant_meeting_notes()</code>
+    function around line 375. Add Qdrant filters or filesystem conditions as needed.
+  </p>
+
+  <h2 id="manual">Running Manually</h2>
+
+  <p>
+    While designed for automation, you can run the calendar scripts manually for testing or one-off briefs.
+  </p>
+
+  <h3>Fetch Today's Events</h3>
+
+  <pre><code>cd ~/Documents/MyVault/scripts/calendar-events
+./fetch_today_events.py > /tmp/today_events.json
+cat /tmp/today_events.json</code></pre>
+
+  <h3>Generate Daily Briefing</h3>
+
+  <pre><code>cd ~/Documents/MyVault/scripts
+./fetch_today_events.py | ./create_daily_briefing.py</code></pre>
+
+  <p>This will:</p>
+
+  <ol>
+    <li>Fetch today's calendar events</li>
+    <li>Pipe the JSON to the briefing script</li>
+    <li>Generate <code>Dashboard/Daily Briefing.md</code></li>
+    <li>Print "Daily briefing generation completed successfully."</li>
+  </ol>
+
+  <h3>Fetch Specific Date Range</h3>
+
+  <pre><code># Fetch this week's events
+./fetch_today_events.py --start 2025-12-09 --end 2025-12-13
+
+# Fetch tomorrow's events
+./fetch_today_events.py --date 2025-12-10</code></pre>
+
+  <h2 id="verify">Verify It Works</h2>
+
+  <h3>Step 1: Authenticate with Google</h3>
+
+  <pre><code>cd ~/Documents/MyVault/scripts/calendar-events
+./fetch_today_events.py</code></pre>
+
+  <p>Expected output:</p>
+
+  <ul>
+    <li>Browser opens for OAuth consent</li>
+    <li>After authorization, token saved to <code>~/.google/token.json</code></li>
+    <li>JSON output with today's events printed to terminal</li>
+  </ul>
+
+  <h3>Step 2: Test Event Fetching</h3>
+
+  <pre><code>./fetch_today_events.py --debug</code></pre>
+
+  <p>Expected debug output:</p>
+
+  <pre><code>[debug] user=you@company.com calendar=primary
+[debug] timeMin=2025-12-09T00:00:00Z timeMax=2025-12-09T23:59:59Z</code></pre>
+
+  <p>Followed by JSON event data.</p>
+
+  <h3>Step 3: Generate Daily Briefing</h3>
+
+  <pre><code>cd ~/Documents/MyVault/scripts
+export BRIEFING_DETERMINISTIC=1
+export BRIEFING_DEBUG=1
+./fetch_today_events.py | ./create_daily_briefing.py</code></pre>
+
+  <p>Expected output:</p>
+
+  <pre><code>Processing 3 calendar events...
+Found relevant notes for 2 events
+Generating briefing content with AI...
+Daily briefing created: /path/to/vault/Dashboard/Daily Briefing.md
+Daily briefing generation completed successfully.</code></pre>
+
+  <h3>Step 4: Verify Briefing File</h3>
+
+  <pre><code>cat Dashboard/Daily\ Briefing.md</code></pre>
+
+  <p>You should see a markdown file with:</p>
+
+  <ul>
+    <li>Today's date in the title</li>
+    <li>Section for each calendar event</li>
+    <li>Relevant past meeting notes linked</li>
+    <li>Action items extracted</li>
+    <li>Context quotes from matched notes</li>
+    <li>Timestamp at bottom</li>
+  </ul>
+
+  <h2>Troubleshooting</h2>
+
+  <h3>OAuth authentication failed</h3>
+
+  <p>
+    <strong>Symptom:</strong> "Credentials file not found" or "Invalid credentials"
+  </p>
+
+  <p>
+    <strong>Solution:</strong> Ensure <code>~/.google/credentials.json</code> exists and contains valid OAuth2 client credentials.
+    Re-download from Google Cloud Console if needed.
+  </p>
+
+  <h3>No events found</h3>
+
+  <p>
+    <strong>Symptom:</strong> <code>"total_events": 0</code> even though you have meetings
+  </p>
+
+  <p>
+    <strong>Possible causes:</strong>
+  </p>
+
+  <ul>
+    <li>Wrong calendar ID (default is "primary")</li>
+    <li>All events are working location markers (filtered out)</li>
+    <li>You declined all events and they're in the future</li>
+    <li>Check with <code>--debug</code> flag to see query parameters</li>
+  </ul>
+
+  <h3>Context missing from briefing</h3>
+
+  <p>
+    <strong>Symptom:</strong> "No relevant quotes found" for events that should have context
+  </p>
+
+  <p>
+    <strong>Possible causes:</strong>
+  </p>
+
+  <ul>
+    <li><strong>Qdrant not running</strong> - Start Qdrant or enable <code>BRIEFING_DISABLE_QDRANT=1</code></li>
+    <li><strong>Notes not embedded</strong> - Run <code>embed_to_qdrant.py</code> on your Meetings folder</li>
+    <li><strong>Threshold too high</strong> - Lower <code>MIN_QDRANT_SCORE</code> or <code>MIN_FALLBACK_SCORE</code></li>
+    <li><strong>Attendee mismatch</strong> - Verify frontmatter <code>attendees</code> field matches calendar emails</li>
+    <li><strong>Wrong quarter</strong> - Notes outside current/previous quarter are excluded</li>
+  </ul>
+
+  <h3>Permission denied errors</h3>
+
+  <p>
+    <strong>Symptom:</strong> "Insufficient permissions" when accessing calendar
+  </p>
+
+  <p>
+    <strong>Solution:</strong> Delete <code>~/.google/token.json</code> and re-authenticate. Ensure the OAuth consent
+    screen includes the calendar.readonly scope.
+  </p>
+
+  <h3>Vertex AI authentication errors (AI mode)</h3>
+
+  <p>
+    <strong>Symptom:</strong> "Could not automatically determine credentials" when generating briefing
+  </p>
+
+  <p>
+    <strong>Solution:</strong> Set required environment variables:
+  </p>
+
+  <pre><code>export GOOGLE_CLOUD_PROJECT=your-project-id
+export GOOGLE_IMPERSONATE_SERVICE_ACCOUNT=service-account@project.iam.gserviceaccount.com
+export CLOUDSDK_ACTIVE_CONFIG_NAME=default</code></pre>
+
+  <p>
+    Or use deterministic mode: <code>export BRIEFING_DETERMINISTIC=1</code>
+  </p>
+
+  <h2>Next Steps</h2>
+
+  <p>
+    Now that you have calendar integration working, continue to
+    <a href="/docs/automation">Automation</a> to set up n8n workflows that run these scripts
+    automatically every morning and generate briefings without manual intervention.
+  </p>
+</DocsLayout>

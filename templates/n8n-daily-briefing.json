@@ -1,0 +1,238 @@
+{
+  "name": "Daily Briefing Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * 1-5"
+            }
+          ]
+        }
+      },
+      "name": "Schedule Daily (6 AM Weekdays)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300],
+      "notesInFlow": [
+        {
+          "note": "Triggers every weekday (Monday-Friday) at 6:00 AM.\n\nCUSTOMIZE: Adjust the cron expression to change the schedule.\nFormat: minute hour day month weekday\n\nExamples:\n- 0 7 * * 1-5 = 7 AM weekdays\n- 30 6 * * * = 6:30 AM daily\n- 0 8 * * 1,3,5 = 8 AM Mon/Wed/Fri"
+        }
+      ]
+    },
+    {
+      "parameters": {
+        "command": "cd {{SCRIPTS_PATH}}/calendar-events && python fetch_today_events.py",
+        "options": {}
+      },
+      "name": "Fetch Calendar Events",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "notesInFlow": [
+        {
+          "note": "Fetches today's calendar events using Google Calendar API.\n\nRequires:\n- Google Calendar API credentials\n- Python script: fetch_today_events.py\n- OAuth token: gmail_oauth_token.json\n\nCUSTOMIZE: Replace {{SCRIPTS_PATH}} with your scripts directory path"
+        }
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Parse calendar JSON output\nconst stdout = $input.item.json.stdout || '';\n\ntry {\n  const calendarData = JSON.parse(stdout);\n  const events = calendarData.events || [];\n  \n  // Filter to work events only (optional)\n  const workEvents = events.filter(event => {\n    const attendees = event.accepted_attendees || [];\n    // Customize this filter for your domain\n    return attendees.some(email => \n      email.includes('@yourcompany.com') || \n      email.includes('@yourworkdomain.com')\n    );\n  });\n  \n  return {\n    json: {\n      events: workEvents,\n      eventCount: workEvents.length,\n      calendarJson: JSON.stringify({ events: workEvents })\n    }\n  };\n} catch (error) {\n  console.error('Failed to parse calendar JSON:', error);\n  return {\n    json: {\n      events: [],\n      eventCount: 0,\n      calendarJson: JSON.stringify({ events: [] }),\n      error: error.message\n    }\n  };\n}"
+      },
+      "name": "Parse Calendar Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300],
+      "notesInFlow": [
+        {
+          "note": "Parses calendar JSON and optionally filters events.\n\nCUSTOMIZE: Adjust the email domain filter to match your organization.\n\nRemove the filter to include all events:\nconst workEvents = events;"
+        }
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.eventCount }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Has Events?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "command": "cd {{VAULT_PATH}} && python scripts/create_daily_briefing.py",
+        "options": {
+          "env": "={{ { CALENDAR_JSON: $json.calendarJson } }}"
+        }
+      },
+      "name": "Generate Daily Briefing",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1050, 200],
+      "notesInFlow": [
+        {
+          "note": "Generates daily briefing by:\n1. Reading calendar events from stdin\n2. Searching for relevant meeting notes\n3. Extracting action items and context\n4. Writing briefing to Dashboard/Daily Briefing.md\n\nCUSTOMIZE:\n- Replace {{VAULT_PATH}} with your vault path\n- Adjust environment variables as needed\n- Set GOOGLE_CLOUD_PROJECT if using Vertex AI"
+        }
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Parse briefing generation output\nconst output = $input.item.json.stdout || '';\nconst stderr = $input.item.json.stderr || '';\n\nconst success = (\n  output.includes('✓') ||\n  output.includes('Daily briefing created') ||\n  !stderr.includes('Error')\n);\n\n// Extract briefing file path\nconst briefingMatch = output.match(/(?:created|written to):\\s*(.+\\.md)/i);\nconst briefingFile = briefingMatch ? briefingMatch[1] : 'Dashboard/Daily Briefing.md';\n\nreturn {\n  json: {\n    success: success,\n    briefingFile: briefingFile,\n    output: output,\n    errors: stderr,\n    eventCount: $input.item.json.eventCount,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "name": "Parse Briefing Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 200]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Log success message\nconst message = `✓ Daily briefing created successfully!\\n\\nEvents processed: ${$input.item.json.eventCount}\\nBriefing file: ${$input.item.json.briefingFile}\\nTimestamp: ${$input.item.json.timestamp}`;\n\nconsole.log(message);\n\nreturn {\n  json: {\n    message: message,\n    success: true\n  }\n};"
+      },
+      "name": "Log Success",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 200],
+      "notesInFlow": [
+        {
+          "note": "Optional: Connect a notification node here to:\n- Send email when briefing is ready\n- Post to Slack\n- Trigger mobile notification\n- Update dashboard"
+        }
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Log no events message\nconst message = `ℹ No events scheduled for today. Daily briefing not generated.\\n\\nTimestamp: ${new Date().toISOString()}`;\n\nconsole.log(message);\n\nreturn {\n  json: {\n    message: message,\n    success: true,\n    noEvents: true\n  }\n};"
+      },
+      "name": "Log No Events",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 400]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Handle errors\nconst errors = $input.item.json.errors || 'Unknown error';\nconst message = `✗ Daily briefing generation failed!\\n\\nErrors: ${errors}\\nTimestamp: ${new Date().toISOString()}`;\n\nconsole.error(message);\n\nreturn {\n  json: {\n    message: message,\n    success: false,\n    errors: errors\n  }\n};"
+      },
+      "name": "Handle Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 300],
+      "notesInFlow": [
+        {
+          "note": "Optional: Connect an error notification node here to:\n- Send error alerts via email\n- Post to Slack error channel\n- Log to error tracking system"
+        }
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Daily (6 AM Weekdays)": {
+      "main": [
+        [
+          {
+            "node": "Fetch Calendar Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Calendar Events": {
+      "main": [
+        [
+          {
+            "node": "Parse Calendar Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Calendar Data": {
+      "main": [
+        [
+          {
+            "node": "Has Events?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Events?": {
+      "main": [
+        [
+          {
+            "node": "Generate Daily Briefing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log No Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Daily Briefing": {
+      "main": [
+        [
+          {
+            "node": "Parse Briefing Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Briefing Result": {
+      "main": [
+        [
+          {
+            "node": "Log Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-12-09T00:00:00.000Z",
+  "versionId": "1"
+}

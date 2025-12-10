@@ -1,0 +1,73 @@
+# AI Executive Assistant Configuration
+# Copy this file to config.yaml and customize for your setup
+
+# Paths - customize these for your environment
+paths:
+  # Root directory of your notes vault (Obsidian, Logseq, etc.)
+  vault_root: "~/Documents/Notes"
+
+  # Folder containing meeting notes (relative to vault_root)
+  meetings_folder: "Meetings"
+
+  # Folder containing people notes (relative to vault_root)
+  people_folder: "People"
+
+  # Reference file with tags and categories (relative to vault_root)
+  reference_file: "Templates/Tag Reference.md"
+
+  # Optional: Log file for AI usage tracking (relative to vault_root)
+  # log_file: "AI and tools/logs.md"
+
+# AI Provider Configuration
+ai:
+  # Primary AI provider: vertex, openai, anthropic, or ollama
+  provider: "vertex"
+
+  # Model to use (provider-specific)
+  model: "gemini-2.5-pro"
+
+  # Embedding provider (defaults to same as primary provider)
+  embedding_provider: "vertex"
+
+  # Embedding model (optional, uses provider defaults if not specified)
+  # embedding_model: "text-embedding-005"
+
+  # Vertex AI configuration (Google Cloud)
+  vertex:
+    project_id: "your-gcp-project-id"
+    location: "us-central1"
+    # Optional: Service account for impersonation
+    # impersonate_service_account: "service-account@project.iam.gserviceaccount.com"
+
+  # OpenAI configuration
+  openai:
+    # API key (can also use OPENAI_API_KEY environment variable)
+    # api_key: "sk-..."
+
+  # Anthropic configuration
+  anthropic:
+    # API key (can also use ANTHROPIC_API_KEY environment variable)
+    # api_key: "sk-ant-..."
+
+  # Ollama configuration (local models)
+  ollama:
+    base_url: "http://localhost:11434"
+
+# Processing configuration
+processing:
+  # Name/acronym normalization replacements
+  # Applied before AI processing to standardize variations
+  name_replacements:
+    Eric: Erik
+    Brady: Breddy
+    Tay: Tae
+    Erin: Aaron
+    UXC: UXE
+    XC: XE
+    Don: Dawn
+    RAS: RHAS
+
+  # Optional: Custom prompts for specific meeting types
+  # prompts:
+  #   group_meeting: "path/to/custom_group_prompt.txt"
+  #   one_on_one: "path/to/custom_1on1_prompt.txt"

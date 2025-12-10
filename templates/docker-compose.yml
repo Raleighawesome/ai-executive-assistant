@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # n8n Workflow Automation
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: ai-assistant-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=changeme
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - GENERIC_TIMEZONE=America/Los_Angeles
+      - WEBHOOK_URL=http://localhost:5678/
+    volumes:
+      # Persist n8n data (workflows, credentials, executions)
+      - n8n_data:/home/node/.n8n
+      # Mount your Obsidian vault (CUSTOMIZE THIS PATH)
+      - ${VAULT_PATH:-/path/to/your/obsidian/vault}:/vault:ro
+      # Mount scripts directory (CUSTOMIZE THIS PATH)
+      - ${SCRIPTS_PATH:-/path/to/ai-executive-assistant/scripts}:/scripts:ro
+    networks:
+      - ai-assistant-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Qdrant Vector Database
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: ai-assistant-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    environment:
+      - QDRANT__SERVICE__HTTP_PORT=6333
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    volumes:
+      # Persist vector database storage
+      - qdrant_storage:/qdrant/storage
+    networks:
+      - ai-assistant-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:6333/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  ai-assistant-net:
+    driver: bridge
+
+volumes:
+  n8n_data:
+    driver: local
+  qdrant_storage:
+    driver: local

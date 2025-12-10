@@ -1,0 +1,46 @@
+---
+const props = [
+  {
+    icon: `<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+    </svg>`,
+    title: 'Privacy First',
+    description: 'Your meeting notes never leave your machine. Use local LLMs for maximum privacy, or choose your preferred cloud provider.',
+  },
+  {
+    icon: `<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+    </svg>`,
+    title: 'Works While You Sleep',
+    description: 'Drop a transcript, wake up to summaries. Automated processing means your notes are ready before you are.',
+  },
+  {
+    icon: `<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    </svg>`,
+    title: 'Built for Leaders',
+    description: 'Designed for executives who run on meetings, not engineers who write code. Clear guides, no jargon.',
+  },
+];
+---
+
+<section class="py-20 bg-surface">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-12">
+      <h2 class="text-3xl font-bold text-text-primary mb-4">Why AI Executive Assistant?</h2>
+      <p class="text-text-secondary max-w-2xl mx-auto">
+        Take control of your meeting workflow without sacrificing privacy or requiring a dev team.
+      </p>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-8">
+      {props.map((prop) => (
+        <div class="card hover:border-accent/50 transition-colors">
+          <div class="text-accent mb-4" set:html={prop.icon} />
+          <h3 class="text-xl font-semibold text-text-primary mb-2">{prop.title}</h3>
+          <p class="text-text-secondary">{prop.description}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

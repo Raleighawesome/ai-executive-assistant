@@ -1,0 +1,160 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Consulting">
+  <section class="pt-32 pb-20">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <h1 class="text-4xl sm:text-5xl font-bold text-text-primary mb-6">
+          Let's Build Your AI Workflow
+        </h1>
+        <p class="text-lg text-text-secondary max-w-2xl mx-auto">
+          Get personalized help setting up your AI Executive Assistant. I'll guide you through the entire process and customize it for your specific needs.
+        </p>
+      </div>
+
+      <!-- What You Get -->
+      <div class="mb-16">
+        <h2 class="text-2xl font-bold text-text-primary mb-6 text-center">What You'll Get</h2>
+        <div class="grid md:grid-cols-2 gap-6">
+          <div class="card">
+            <div class="flex items-start gap-4">
+              <div class="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 class="font-semibold text-text-primary mb-1">Custom Configuration</h3>
+                <p class="text-text-secondary text-sm">Tailored setup for your note-taking app, AI provider, and workflow preferences.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="flex items-start gap-4">
+              <div class="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <div>
+                <h3 class="font-semibold text-text-primary mb-1">Fast Implementation</h3>
+                <p class="text-text-secondary text-sm">Skip the trial-and-error. Get up and running in hours, not weeks.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="flex items-start gap-4">
+              <div class="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 class="font-semibold text-text-primary mb-1">Ongoing Support</h3>
+                <p class="text-text-secondary text-sm">Get answers to questions and troubleshoot issues as they arise.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="flex items-start gap-4">
+              <div class="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              </div>
+              <div>
+                <h3 class="font-semibold text-text-primary mb-1">Best Practices</h3>
+                <p class="text-text-secondary text-sm">Learn the workflows and techniques that make AI automation actually useful.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cal.com Embed -->
+      <div class="card">
+        <div class="text-center mb-8">
+          <h2 class="text-2xl font-bold text-text-primary mb-2">Book a Call</h2>
+          <p class="text-text-secondary">
+            Pick a time that works for you. No commitment, just a conversation.
+          </p>
+        </div>
+
+        <!-- Cal.com inline embed -->
+        <div
+          id="cal-embed"
+          class="rounded-lg overflow-hidden"
+          style="width:100%"
+        ></div>
+      </div>
+
+      <!-- Back link -->
+      <div class="text-center mt-12">
+        <a href="/" class="text-accent hover:text-accent-hover transition-colors">
+          ← Back to Home
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cal.com embed script -->
+  <script is:inline>
+    (function (C, A, L) {
+      let p = function (a, ar) {
+        a.q.push(ar);
+      };
+      let d = C.document;
+      C.Cal =
+        C.Cal ||
+        function () {
+          let cal = C.Cal;
+          let ar = arguments;
+          if (!cal.loaded) {
+            cal.ns = {};
+            cal.q = cal.q || [];
+            d.head.appendChild(d.createElement("script")).src = A;
+            cal.loaded = true;
+          }
+          if (ar[0] === L) {
+            const api = function () {
+              p(api, arguments);
+            };
+            const namespace = ar[1];
+            api.q = api.q || [];
+            if (typeof namespace === "string") {
+              cal.ns[namespace] = cal.ns[namespace] || api;
+              p(cal.ns[namespace], ar);
+              p(cal, ["initNamespace", namespace]);
+            } else p(cal, ar);
+            return;
+          }
+          p(cal, ar);
+        };
+    })(window, "https://app.cal.com/embed/embed.js", "init");
+
+    Cal("init", "ai-assistant", { origin: "https://cal.com" });
+
+    Cal.ns["ai-assistant"]("inline", {
+      elementOrSelector: "#cal-embed",
+      calLink: "eriknewby",
+      layout: "month_view",
+      config: {
+        theme: "dark",
+      },
+    });
+
+    Cal.ns["ai-assistant"]("ui", {
+      theme: "dark",
+      styles: {
+        branding: { brandColor: "#3b82f6" },
+      },
+      hideEventTypeDetails: false,
+      layout: "month_view",
+    });
+  </script>
+</BaseLayout>

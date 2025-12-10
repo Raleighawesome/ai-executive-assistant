@@ -1,0 +1,818 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+---
+
+<DocsLayout title="Automation">
+  <h1>Automation</h1>
+
+  <p>
+    The Automation module transforms your AI Executive Assistant into a hands-free processing pipeline.
+    Using n8n (an open-source workflow automation tool), you'll set up file watchers, automatic routing,
+    and scheduled tasks that run without manual intervention.
+  </p>
+
+  <h2>Prerequisites</h2>
+
+  <ul>
+    <li><strong>Foundation module</strong> completed (vault and AI provider configured)</li>
+    <li><strong>Meeting Processing module</strong> completed (processing scripts working)</li>
+    <li><strong>RAG Search module</strong> completed (Qdrant running)</li>
+    <li><strong>Calendar Integration module</strong> completed (daily briefings working)</li>
+    <li><strong>Docker Desktop</strong> installed (<a href="https://www.docker.com/products/docker-desktop/" target="_blank" rel="noopener">download</a>)</li>
+    <li>~30 minutes to complete setup</li>
+  </ul>
+
+  <h2>What You'll Get</h2>
+
+  <ul>
+    <li><strong>File Watcher</strong> - Automatic processing when new meeting notes appear</li>
+    <li><strong>Automatic Routing</strong> - Intelligent detection of 1:1 vs group meetings</li>
+    <li><strong>End-to-End Processing</strong> - Summarization, embedding, and archiving without manual steps</li>
+    <li><strong>Scheduled Briefings</strong> - Daily meeting briefs generated every morning at 6 AM</li>
+    <li><strong>Error Handling</strong> - Automatic retries and failure notifications</li>
+    <li><strong>Zero Maintenance</strong> - Set it once, runs forever in the background</li>
+  </ul>
+
+  <h2 id="n8n-overview">What is n8n?</h2>
+
+  <p>
+    <a href="https://n8n.io" target="_blank" rel="noopener">n8n</a> is an open-source workflow automation
+    platform that connects different services and triggers actions based on events. Think of it as "if this,
+    then that" for developers.
+  </p>
+
+  <h3>Why n8n?</h3>
+
+  <ul>
+    <li><strong>Self-Hosted</strong> - Runs on your machine, no external service required</li>
+    <li><strong>Visual Workflow Builder</strong> - Design automations with a drag-and-drop interface</li>
+    <li><strong>Rich Node Library</strong> - File watchers, SSH execution, HTTP requests, databases, and more</li>
+    <li><strong>Docker Support</strong> - Easy deployment alongside Qdrant</li>
+    <li><strong>Free & Open Source</strong> - Apache 2.0 license, no pricing tiers</li>
+  </ul>
+
+  <h3>How We Use n8n</h3>
+
+  <p>
+    Our automation stack uses n8n to:
+  </p>
+
+  <ol>
+    <li><strong>Monitor</strong> the Meetings folder for new .md files</li>
+    <li><strong>Parse</strong> frontmatter to detect meeting type (1:1 vs group)</li>
+    <li><strong>Execute</strong> the appropriate processing script via SSH</li>
+    <li><strong>Embed</strong> processed notes to Qdrant for semantic search</li>
+    <li><strong>Organize</strong> notes into quarterly folders</li>
+    <li><strong>Schedule</strong> daily briefing generation every morning</li>
+  </ol>
+
+  <h2 id="docker-setup">Docker Setup</h2>
+
+  <p>
+    We'll use Docker Compose to run both n8n and Qdrant as a unified stack, ensuring they can communicate
+    and share persistent storage.
+  </p>
+
+  <h3>Create Docker Compose File</h3>
+
+  <p>Create a directory for the n8n stack and compose file:</p>
+
+  <pre><code>mkdir -p ~/n8n-stack
+cd ~/n8n-stack</code></pre>
+
+  <p>Create <code>docker-compose.yml</code> with the following content:</p>
+
+  <pre><code>version: '3.8'
+
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=changeme  # CHANGE THIS!
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - GENERIC_TIMEZONE=America/New_York  # Adjust to your timezone
+      - TZ=America/New_York
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ~/Obsidian:/data/obsidian:ro  # Mount your vault (read-only)
+      - ~/.ssh:/home/node/.ssh:ro  # SSH keys for executing scripts
+      - ~/.config/gcloud:/home/node/.config/gcloud:ro  # For Vertex AI auth
+    networks:
+      - ai_assistant
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - ai_assistant
+
+volumes:
+  n8n_data:
+  qdrant_data:
+
+networks:
+  ai_assistant:
+    driver: bridge</code></pre>
+
+  <p>
+    <strong>Security Note:</strong> Change <code>N8N_BASIC_AUTH_PASSWORD</code> to a secure password before starting.
+  </p>
+
+  <h3>Adjust Volume Paths</h3>
+
+  <p>Update these paths to match your system:</p>
+
+  <ul>
+    <li><code>~/Obsidian</code> → Path to your Obsidian vault root</li>
+    <li><code>~/.ssh</code> → Path to SSH keys (for script execution)</li>
+    <li><code>~/.config/gcloud</code> → Path to gcloud credentials (if using Vertex AI)</li>
+  </ul>
+
+  <h3>Start the Stack</h3>
+
+  <pre><code>cd ~/n8n-stack
+docker-compose up -d</code></pre>
+
+  <p>Expected output:</p>
+
+  <pre><code>Creating network "n8n-stack_ai_assistant" [completed]
+Creating volume "n8n-stack_n8n_data" [completed]
+Creating volume "n8n-stack_qdrant_data" [completed]
+Creating n8n [completed]
+Creating qdrant [completed]</code></pre>
+
+  <h3>Verify Containers Are Running</h3>
+
+  <pre><code>docker ps</code></pre>
+
+  <p>You should see both <code>n8n</code> and <code>qdrant</code> containers with status "Up".</p>
+
+  <h3>Access n8n Web Interface</h3>
+
+  <p>Open your browser and navigate to:</p>
+
+  <pre><code>http://localhost:5678</code></pre>
+
+  <p>
+    Log in with the credentials from your <code>docker-compose.yml</code> (default: <code>admin</code> / <code>changeme</code>).
+  </p>
+
+  <h2 id="importing">Importing Workflow Templates</h2>
+
+  <p>
+    We provide pre-built workflow templates that you can import directly into n8n. These templates include
+    all the necessary nodes and connections.
+  </p>
+
+  <h3>Available Templates</h3>
+
+  <ul>
+    <li><strong>Meeting Processor</strong> - File watcher → Type detection → Processing → Organization</li>
+    <li><strong>Daily Briefing</strong> - Scheduled task → Fetch calendar → Generate briefing</li>
+    <li><strong>Error Handler</strong> - Catch workflow failures → Log → Optional notification</li>
+  </ul>
+
+  <h3>Import a Workflow</h3>
+
+  <ol>
+    <li>In n8n, click <strong>Workflows</strong> in the top menu</li>
+    <li>Click <strong>Add Workflow</strong></li>
+    <li>Click the three dots menu (⋮) → <strong>Import from File</strong></li>
+    <li>Select the JSON template file (e.g., <code>meeting-processor.json</code>)</li>
+    <li>Click <strong>Import</strong></li>
+  </ol>
+
+  <p>The workflow will appear in the visual editor with all nodes pre-configured.</p>
+
+  <h3>Download Templates</h3>
+
+  <p>
+    Templates are available in the <a href="https://github.com/Raleighawesome/ai-executive-assistant/tree/main/templates" target="_blank" rel="noopener">templates directory</a> of the repository:
+  </p>
+
+  <ul>
+    <li><code>meeting-processor.json</code> - Main automation workflow</li>
+    <li><code>daily-briefing.json</code> - Morning briefing scheduler</li>
+    <li><code>error-handler.json</code> - Error workflow (optional)</li>
+  </ul>
+
+  <h2 id="file-watcher">File Watcher Trigger</h2>
+
+  <p>
+    The file watcher monitors your Meetings folder and triggers the workflow whenever a new .md file is created.
+  </p>
+
+  <h3>How It Works</h3>
+
+  <ol>
+    <li><strong>Local File Trigger</strong> - n8n watches a specified directory path</li>
+    <li><strong>Event Filter</strong> - Only responds to "add" events (new files)</li>
+    <li><strong>Write Completion</strong> - Waits for file write to complete before processing</li>
+    <li><strong>File Reading</strong> - Reads the complete file content</li>
+    <li><strong>Text Extraction</strong> - Converts binary content to text for parsing</li>
+  </ol>
+
+  <h3>Configuration</h3>
+
+  <p>In the <strong>Local File Trigger</strong> node, configure:</p>
+
+  <pre><code>Path to watch: /data/obsidian/YourVault/Meetings
+Trigger on: add
+Watch for directories: No
+Await write finish: Yes (prevents partial file processing)</code></pre>
+
+  <p>
+    <strong>Important:</strong> The path <code>/data/obsidian</code> is the mounted volume inside the Docker container.
+    If your vault is mounted at a different location in docker-compose.yml, adjust accordingly.
+  </p>
+
+  <h3>Testing the Trigger</h3>
+
+  <ol>
+    <li>Activate the workflow in n8n (toggle switch in top-right)</li>
+    <li>Create a test file in your Meetings folder:
+      <pre><code>echo "---
+title: Test Meeting
+tags: [meeting]
+---
+
+# Test Meeting
+
+This is a test." > ~/Obsidian/YourVault/Meetings/test.md</code></pre>
+    </li>
+    <li>Watch the n8n execution history - a new execution should appear immediately</li>
+  </ol>
+
+  <h2 id="detection">Meeting Type Detection</h2>
+
+  <p>
+    The workflow automatically detects whether a meeting is a 1:1 or group meeting by parsing the frontmatter
+    and analyzing tags.
+  </p>
+
+  <h3>Detection Logic</h3>
+
+  <p>The <strong>Parse Front-Matter</strong> JavaScript node:</p>
+
+  <ol>
+    <li>Extracts YAML frontmatter from the markdown file</li>
+    <li>Normalizes tags (handles unicode dashes, underscores, spaces)</li>
+    <li>Checks for specific 1:1 indicators:
+      <ul>
+        <li>Tag <code>1-1</code> (or <code>1–1</code>, <code>1_1</code>, etc.)</li>
+        <li>Tag <code>one-on-one</code></li>
+      </ul>
+    </li>
+    <li>Sets <code>isOneOnOne: true</code> if detected, otherwise <code>false</code></li>
+  </ol>
+
+  <h3>Tag Normalization</h3>
+
+  <p>The normalization function handles various tag formats:</p>
+
+  <pre><code>// These all normalize to "1-1":
+tags: [1-1]
+tags: [1–1]  // Unicode en-dash
+tags: [1_1]
+tags: [1:1]
+tags: [1 1]
+
+// These normalize to "one-on-one":
+tags: [one-on-one]
+tags: [one_on_one]
+tags: [one:on:one]</code></pre>
+
+  <h3>Routing Branch</h3>
+
+  <p>After detection, the <strong>If 1-1</strong> node routes to the appropriate processor:</p>
+
+  <ul>
+    <li><strong>True branch</strong> → <code>process_one-on-one_notes.py</code></li>
+    <li><strong>False branch</strong> → <code>process_mtg_notes.py</code></li>
+  </ul>
+
+  <h2 id="pipeline">Processing Pipeline</h2>
+
+  <p>
+    The complete end-to-end automation pipeline processes notes from detection to organization:
+  </p>
+
+  <h3>Flow Diagram</h3>
+
+  <pre><code>[File Trigger]
+    ↓
+[Read File]
+    ↓
+[Extract Content]
+    ↓
+[Get Filename]
+    ↓
+[Parse Frontmatter]
+    ↓
+[Meeting Type Detection]
+    ↓
+    ├→ [1:1 Processing]
+    └→ [Group Processing]
+            ↓
+    [Vector Embedding] (optional)
+            ↓
+    [Move to Quarterly Folder]</code></pre>
+
+  <h3>Pipeline Stages</h3>
+
+  <ol>
+    <li><strong>File Detection</strong> - New .md file appears in Meetings folder</li>
+    <li><strong>Content Reading</strong> - Full file content loaded into workflow</li>
+    <li><strong>Type Detection</strong> - Frontmatter parsed to determine meeting type</li>
+    <li><strong>AI Processing</strong> - Appropriate script generates summary, action items, tags</li>
+    <li><strong>Vector Embedding</strong> - Processed note embedded to Qdrant for semantic search</li>
+    <li><strong>File Organization</strong> - Note moved to appropriate quarterly folder</li>
+  </ol>
+
+  <h3>Processing Time</h3>
+
+  <p>Typical processing times:</p>
+
+  <ul>
+    <li><strong>Detection & Routing:</strong> &lt; 1 second</li>
+    <li><strong>AI Processing:</strong> 30-60 seconds (depends on AI provider)</li>
+    <li><strong>Vector Embedding:</strong> 5-10 seconds</li>
+    <li><strong>File Organization:</strong> &lt; 1 second</li>
+    <li><strong>Total:</strong> ~45-75 seconds per meeting note</li>
+  </ul>
+
+  <h2 id="ssh">SSH Execution</h2>
+
+  <p>
+    n8n runs inside a Docker container but needs to execute Python scripts on your host machine. We use
+    SSH to bridge this gap securely.
+  </p>
+
+  <h3>SSH Setup</h3>
+
+  <h4>Step 1: Generate SSH Key (if needed)</h4>
+
+  <pre><code>ssh-keygen -t ed25519 -f ~/.ssh/n8n_automation -N ""</code></pre>
+
+  <h4>Step 2: Add Key to Authorized Keys</h4>
+
+  <pre><code>cat ~/.ssh/n8n_automation.pub >> ~/.ssh/authorized_keys
+chmod 600 ~/.ssh/authorized_keys</code></pre>
+
+  <h4>Step 3: Test SSH from Container</h4>
+
+  <pre><code>docker exec -it n8n ssh -i /home/node/.ssh/n8n_automation username@host.docker.internal "echo 'SSH works'"</code></pre>
+
+  <p>Replace <code>username</code> with your actual username.</p>
+
+  <h4>Step 4: Configure SSH Node in n8n</h4>
+
+  <p>In each SSH node, configure:</p>
+
+  <pre><code>Host: host.docker.internal  # Docker's host machine alias
+User: your_username
+Private Key: Use the mounted key at /home/node/.ssh/n8n_automation</code></pre>
+
+  <h3>Creating SSH Credentials in n8n</h3>
+
+  <ol>
+    <li>In n8n, go to <strong>Settings</strong> → <strong>Credentials</strong></li>
+    <li>Click <strong>Add Credential</strong></li>
+    <li>Select <strong>SSH</strong></li>
+    <li>Configure:
+      <ul>
+        <li><strong>Host:</strong> <code>host.docker.internal</code></li>
+        <li><strong>Port:</strong> <code>22</code></li>
+        <li><strong>Username:</strong> Your system username</li>
+        <li><strong>Private Key:</strong> Paste contents of <code>~/.ssh/n8n_automation</code></li>
+      </ul>
+    </li>
+    <li>Click <strong>Save</strong></li>
+  </ol>
+
+  <h3>SSH Node Configuration</h3>
+
+  <p>Example SSH command for meeting processing:</p>
+
+  <pre><code>export GOOGLE_CLOUD_PROJECT="your-project-id"
+export GOOGLE_IMPERSONATE_SERVICE_ACCOUNT="service-account@project.iam.gserviceaccount.com"
+export VERTEX_LOCATION="us-central1"
+export CLOUDSDK_ACTIVE_CONFIG_NAME=default
+
+"$HOME/scripts/ai_scripts/.venv/bin/python" \
+"$HOME/scripts/ai_scripts/process_mtg_notes.py" \
+"$HOME/Obsidian/YourVault/Meetings/[filename]"</code></pre>
+
+  <p>
+    <strong>Template Variables:</strong> <code>{`{{ $json.title }}`}</code> is replaced with the filename
+    extracted in the "Get File Name" node.
+  </p>
+
+  <h2 id="errors">Error Handling</h2>
+
+  <p>
+    Robust error handling ensures the automation continues working even when individual steps fail.
+  </p>
+
+  <h3>Built-in Safeguards</h3>
+
+  <ul>
+    <li><strong>Await Write Finish</strong> - File trigger waits for complete write before processing</li>
+    <li><strong>Idempotent Scripts</strong> - All processing scripts are safe to retry</li>
+    <li><strong>Graceful Degradation</strong> - System continues with reduced capability on errors</li>
+    <li><strong>Data Preservation</strong> - All nodes pass complete data downstream for debugging</li>
+  </ul>
+
+  <h3>Error Workflow</h3>
+
+  <p>
+    Create a separate "Error Handler" workflow that catches failures from your main workflows:
+  </p>
+
+  <ol>
+    <li>Import <code>error-handler.json</code> template</li>
+    <li>In your main workflow settings, set <strong>Error Workflow</strong> to the error handler</li>
+    <li>Configure notification method (email, Slack, webhook, etc.)</li>
+  </ol>
+
+  <h3>Viewing Errors</h3>
+
+  <p>In n8n:</p>
+
+  <ol>
+    <li>Click <strong>Executions</strong> in the top menu</li>
+    <li>Failed executions show with a red error icon</li>
+    <li>Click to view full execution details and error messages</li>
+    <li>Inspect each node's input/output data</li>
+  </ol>
+
+  <h3>Common Errors and Solutions</h3>
+
+  <h4>SSH Connection Failed</h4>
+
+  <p>
+    <strong>Symptom:</strong> "Permission denied" or "Connection refused"
+  </p>
+
+  <p><strong>Solutions:</strong></p>
+
+  <ul>
+    <li>Verify SSH daemon is running: <code>sudo systemctl status ssh</code></li>
+    <li>Check key permissions: <code>chmod 600 ~/.ssh/n8n_automation</code></li>
+    <li>Test SSH manually: <code>ssh -i ~/.ssh/n8n_automation username@localhost</code></li>
+    <li>Verify <code>host.docker.internal</code> resolves correctly</li>
+  </ul>
+
+  <h4>Python Script Failed</h4>
+
+  <p>
+    <strong>Symptom:</strong> "ModuleNotFoundError" or "Python not found"
+  </p>
+
+  <p><strong>Solutions:</strong></p>
+
+  <ul>
+    <li>Verify virtual environment path: <code>ls -la ~/scripts/ai_scripts/.venv/bin/python</code></li>
+    <li>Check installed packages: <code>.venv/bin/pip list</code></li>
+    <li>Run script manually to test: <code>.venv/bin/python process_mtg_notes.py test.md</code></li>
+  </ul>
+
+  <h4>Vertex AI Authentication Failed</h4>
+
+  <p>
+    <strong>Symptom:</strong> "Could not automatically determine credentials"
+  </p>
+
+  <p><strong>Solutions:</strong></p>
+
+  <ul>
+    <li>Verify gcloud config mounted correctly in docker-compose.yml</li>
+    <li>Check environment variables are set in SSH command</li>
+    <li>Test gcloud auth: <code>gcloud auth list</code></li>
+    <li>Verify service account impersonation: <code>gcloud config get-value auth/impersonate_service_account</code></li>
+  </ul>
+
+  <h2 id="scheduling">Scheduling Daily Briefings</h2>
+
+  <p>
+    Set up a cron trigger to automatically generate daily briefings every morning.
+  </p>
+
+  <h3>Import Daily Briefing Workflow</h3>
+
+  <ol>
+    <li>Import <code>daily-briefing.json</code> template</li>
+    <li>The workflow includes:
+      <ul>
+        <li><strong>Cron Trigger</strong> - Runs at 6:00 AM every day</li>
+        <li><strong>Fetch Calendar</strong> - Executes <code>fetch_today_events.py</code></li>
+        <li><strong>Generate Briefing</strong> - Pipes events to <code>create_daily_briefing.py</code></li>
+      </ul>
+    </li>
+  </ol>
+
+  <h3>Configure Cron Schedule</h3>
+
+  <p>In the <strong>Cron</strong> node, set:</p>
+
+  <pre><code>Trigger Interval: Days
+Minute: 0
+Hour: 6
+Timezone: America/New_York  # Adjust to your timezone</code></pre>
+
+  <p>This translates to: "Every day at 6:00 AM".</p>
+
+  <h3>Customize Timing</h3>
+
+  <p>Common schedules:</p>
+
+  <ul>
+    <li><strong>Weekdays only:</strong> Add condition to skip Saturdays/Sundays</li>
+    <li><strong>Earlier start:</strong> Change hour to <code>5</code> for 5:00 AM</li>
+    <li><strong>Multiple times:</strong> Add additional cron triggers</li>
+  </ul>
+
+  <h3>Briefing Command</h3>
+
+  <p>The SSH node executes:</p>
+
+  <pre><code>export BRIEFING_DETERMINISTIC=1
+export BRIEFING_DEBUG=0
+
+cd "$HOME/scripts/ai_scripts"
+./calendar-events/fetch_today_events.py | \
+./.venv/bin/python ./create_daily_briefing.py</code></pre>
+
+  <p>This pipes calendar events directly to the briefing generator.</p>
+
+  <h3>Testing the Schedule</h3>
+
+  <p>To test without waiting until 6 AM:</p>
+
+  <ol>
+    <li>In the workflow editor, click <strong>Execute Workflow</strong></li>
+    <li>Check that <code>Dashboard/Daily Briefing.md</code> is updated</li>
+    <li>Verify the timestamp at the bottom of the file</li>
+  </ol>
+
+  <h2 id="customizing">Customizing Workflows</h2>
+
+  <p>
+    n8n's visual editor makes it easy to modify workflows to fit your specific needs.
+  </p>
+
+  <h3>Adding Nodes</h3>
+
+  <ol>
+    <li>Click the <strong>+</strong> button between existing nodes</li>
+    <li>Search for the node type (e.g., "HTTP Request", "Code", "If")</li>
+    <li>Drag the node into position</li>
+    <li>Configure the node's parameters</li>
+    <li>Connect input/output to neighboring nodes</li>
+  </ol>
+
+  <h3>Common Customizations</h3>
+
+  <h4>Add Slack Notification</h4>
+
+  <p>Get notified when daily briefing is ready:</p>
+
+  <ol>
+    <li>Add <strong>Slack</strong> node after briefing generation</li>
+    <li>Configure Slack credentials (webhook URL or OAuth)</li>
+    <li>Set message: <code>{`"Daily briefing ready! {{ $json.event_count }} meetings today."`}</code></li>
+  </ol>
+
+  <h4>Filter by Meeting Title</h4>
+
+  <p>Skip processing certain meetings:</p>
+
+  <ol>
+    <li>Add <strong>If</strong> node after filename extraction</li>
+    <li>Condition: <code>{`{{ $json.title }}`}</code> does not contain "WFH" or "OOO"</li>
+    <li>Connect true branch to processing, false branch to end</li>
+  </ol>
+
+  <h4>Add Email Digest</h4>
+
+  <p>Email yourself the daily briefing:</p>
+
+  <ol>
+    <li>Add <strong>Read Binary File</strong> node to load <code>Dashboard/Daily Briefing.md</code></li>
+    <li>Add <strong>Email</strong> node</li>
+    <li>Configure SMTP credentials</li>
+    <li>Set body to briefing content</li>
+  </ol>
+
+  <h3>Debugging Workflows</h3>
+
+  <p>Tips for troubleshooting custom workflows:</p>
+
+  <ul>
+    <li><strong>Execute Manually</strong> - Use "Execute Workflow" button to test without waiting for triggers</li>
+    <li><strong>Inspect Data</strong> - Click on any node to see its input/output JSON</li>
+    <li><strong>Add Debug Nodes</strong> - Insert "Code" nodes to log data: <code>console.log($input.all())</code></li>
+    <li><strong>Check Logs</strong> - View container logs: <code>docker logs n8n -f</code></li>
+  </ul>
+
+  <h2 id="verify">Verify It Works</h2>
+
+  <p>
+    Let's test the complete automation pipeline end-to-end.
+  </p>
+
+  <h3>Step 1: Verify n8n is Running</h3>
+
+  <pre><code>docker ps | grep n8n</code></pre>
+
+  <p>You should see <code>n8n</code> with status "Up".</p>
+
+  <h3>Step 2: Activate Workflow</h3>
+
+  <ol>
+    <li>Open n8n: <code>http://localhost:5678</code></li>
+    <li>Navigate to your "Meeting Processor" workflow</li>
+    <li>Toggle the <strong>Active</strong> switch in the top-right (should turn blue)</li>
+  </ol>
+
+  <h3>Step 3: Create Test Meeting Note</h3>
+
+  <p>Create a test file in your Meetings folder:</p>
+
+  <pre><code>cat > ~/Obsidian/YourVault/Meetings/12-09-25\ -\ Test\ Meeting.md << 'EOF'
+---
+title: Test Meeting
+tags: [meeting, test]
+date: 2025-12-09
+---
+
+# Test Meeting
+
+This is a test meeting to verify automation.
+
+## Discussion Points
+- Point 1
+- Point 2
+
+## Next Steps
+- Action item 1
+- Action item 2
+EOF</code></pre>
+
+  <h3>Step 4: Watch Execution</h3>
+
+  <ol>
+    <li>In n8n, click <strong>Executions</strong> in the top menu</li>
+    <li>A new execution should appear within seconds</li>
+    <li>Click on it to see the full workflow execution</li>
+    <li>Verify all nodes completed successfully (green checkmarks)</li>
+  </ol>
+
+  <h3>Step 5: Verify Processing Results</h3>
+
+  <p>Check that the file was processed:</p>
+
+  <pre><code>cat ~/Obsidian/YourVault/Meetings/12-09-25\ -\ Test\ Meeting.md</code></pre>
+
+  <p>You should see:</p>
+
+  <ul>
+    <li>Frontmatter updated with additional tags</li>
+    <li>Executive summary added at the top</li>
+    <li>Action items extracted and formatted</li>
+    <li>Transcript archived (if configured)</li>
+  </ul>
+
+  <h3>Step 6: Verify File Organization</h3>
+
+  <p>Check if the file was moved to the quarterly folder:</p>
+
+  <pre><code>ls ~/Obsidian/YourVault/Meetings/2025/Q425/</code></pre>
+
+  <p>The test file should appear in the appropriate quarterly directory.</p>
+
+  <h3>Step 7: Test Daily Briefing</h3>
+
+  <ol>
+    <li>Open the "Daily Briefing" workflow in n8n</li>
+    <li>Click <strong>Execute Workflow</strong></li>
+    <li>Wait 10-15 seconds for completion</li>
+    <li>Check <code>Dashboard/Daily Briefing.md</code> for updated content</li>
+  </ol>
+
+  <h2>Troubleshooting</h2>
+
+  <h3>Container not running</h3>
+
+  <p>
+    <strong>Symptom:</strong> n8n not accessible at http://localhost:5678
+  </p>
+
+  <p><strong>Solutions:</strong></p>
+
+  <ul>
+    <li>Check Docker is running: <code>docker ps</code></li>
+    <li>Start stack: <code>cd ~/n8n-stack && docker-compose up -d</code></li>
+    <li>Check logs: <code>docker logs n8n</code></li>
+    <li>Verify port 5678 isn't in use: <code>lsof -i :5678</code></li>
+  </ul>
+
+  <h3>SSH errors when executing scripts</h3>
+
+  <p>
+    <strong>Symptom:</strong> "Permission denied (publickey)" in SSH nodes
+  </p>
+
+  <p><strong>Solutions:</strong></p>
+
+  <ul>
+    <li>Verify SSH key in authorized_keys: <code>cat ~/.ssh/authorized_keys | grep n8n</code></li>
+    <li>Check key permissions: <code>chmod 600 ~/.ssh/n8n_automation</code></li>
+    <li>Test SSH from container: <code>docker exec n8n ssh -i /home/node/.ssh/n8n_automation user@host.docker.internal</code></li>
+    <li>Verify username in SSH credentials matches your system username</li>
+  </ul>
+
+  <h3>File not detected by watcher</h3>
+
+  <p>
+    <strong>Symptom:</strong> New files don't trigger workflow execution
+  </p>
+
+  <p><strong>Solutions:</strong></p>
+
+  <ul>
+    <li>Verify workflow is <strong>Active</strong> (blue toggle in top-right)</li>
+    <li>Check file is in the correct path: <code>/data/obsidian/YourVault/Meetings</code> (container path)</li>
+    <li>Verify volume mount in docker-compose.yml matches your vault location</li>
+    <li>Restart n8n container: <code>docker restart n8n</code></li>
+    <li>Check n8n logs: <code>docker logs n8n -f</code> while creating test file</li>
+  </ul>
+
+  <h3>Qdrant connection errors</h3>
+
+  <p>
+    <strong>Symptom:</strong> "Connection refused" when embedding notes
+  </p>
+
+  <p><strong>Solutions:</strong></p>
+
+  <ul>
+    <li>Verify Qdrant is running: <code>docker ps | grep qdrant</code></li>
+    <li>Check Qdrant health: <code>curl http://localhost:6333/health</code></li>
+    <li>Verify both containers are on same network: <code>docker network inspect n8n-stack_ai_assistant</code></li>
+    <li>Restart Qdrant: <code>docker restart qdrant</code></li>
+  </ul>
+
+  <h3>Environment variables not set</h3>
+
+  <p>
+    <strong>Symptom:</strong> "GOOGLE_CLOUD_PROJECT not set" errors in AI processing
+  </p>
+
+  <p><strong>Solutions:</strong></p>
+
+  <ul>
+    <li>Check SSH node includes all required <code>export</code> statements</li>
+    <li>Verify credentials are mounted in docker-compose.yml</li>
+    <li>Test environment manually: <code>ssh user@host.docker.internal "echo \$GOOGLE_CLOUD_PROJECT"</code></li>
+  </ul>
+
+  <h2>Complete!</h2>
+
+  <p>
+    Congratulations! You've successfully set up a fully automated AI Executive Assistant. Your system now:
+  </p>
+
+  <ul>
+    <li>Automatically processes new meeting notes as they appear</li>
+    <li>Intelligently routes 1:1 vs group meetings to specialized processors</li>
+    <li>Embeds notes to a searchable vector database</li>
+    <li>Organizes files into quarterly folders</li>
+    <li>Generates daily briefings every morning at 6 AM</li>
+    <li>Handles errors gracefully and provides debugging visibility</li>
+  </ul>
+
+  <p>
+    <strong>What's Next?</strong> Explore the n8n workflow editor to customize the automation to your specific
+    workflow. Add notifications, integrate with other tools, or create entirely new workflows.
+  </p>
+
+  <p>
+    The full power of your AI Executive Assistant is now at your fingertips - working 24/7 in the background,
+    completely hands-free.
+  </p>
+</DocsLayout>
