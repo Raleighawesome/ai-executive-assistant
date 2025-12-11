@@ -5,7 +5,9 @@ A privacy-first toolkit for automating meeting workflows with AI. Process meetin
 ## Features
 
 - **Meeting Processing** - Automatically generate executive summaries, extract action items, and organize notes
+  - **Personal Notes** - Capture personal details from 1:1s for relationship building (family events, vacations, hobbies)
 - **RAG Search** - Semantic search across your entire knowledge base using vector embeddings
+  - **MCP Integration** - Query Qdrant directly from Claude Code via the Qdrant MCP Server
 - **Calendar Integration** - Daily briefings with context from past meetings and relevant documents
 - **Workflow Automation** - End-to-end automation with n8n for hands-free processing
 
@@ -38,8 +40,8 @@ The site includes:
 | Module | Description |
 |--------|-------------|
 | **Foundation** | Core setup: Obsidian vault, Python environment, AI provider |
-| **Meeting Processing** | AI-powered summaries, action items, and metadata extraction |
-| **RAG Search** | Vector database setup and semantic search capabilities |
+| **Meeting Processing** | AI-powered summaries, action items, personal notes, and metadata extraction |
+| **RAG Search** | Vector database setup, semantic search, and MCP server integration |
 | **Calendar Integration** | Google Calendar sync and daily briefing generation |
 | **Automation** | n8n workflows for hands-free processing |
 

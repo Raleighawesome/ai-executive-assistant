@@ -58,6 +58,7 @@ import DocsLayout from '../../layouts/DocsLayout.astro';
     <li>Professional development tracking</li>
     <li>Automatic linking to person's note page</li>
     <li>Growth witnessed and future coaching suggestions</li>
+    <li><strong>Personal notes</strong> - Notable personal details for relationship building (family events, vacations, hobbies, health matters)</li>
   </ul>
 
   <h2 id="setup">Setup</h2>
@@ -237,7 +238,42 @@ Based on the meeting notes...
 ## Coaching & Growth
 - **Growth Witnessed**: [Your custom instructions]
 - **Growth Opportunities**: [Your custom instructions]
+
+## Personal Notes
+[Capture notable personal details worth following up on]
 """</code></pre>
+
+  <h2 id="personal-notes">Personal Notes (One-on-One)</h2>
+
+  <p>
+    The Personal Notes feature captures notable personal details shared during 1:1 meetings that are worth
+    remembering or following up on in future conversations. This supports relationship building and personalized management.
+  </p>
+
+  <h3>What Gets Captured</h3>
+
+  <ul>
+    <li><strong>Family events</strong> - Birthdays, weddings, new babies, anniversaries</li>
+    <li><strong>Health matters</strong> - Recovery updates, medical appointments mentioned</li>
+    <li><strong>Vacations and travel</strong> - Upcoming trips, recent travels</li>
+    <li><strong>Hobbies and interests</strong> - Personal projects, sports, activities</li>
+    <li><strong>Life milestones</strong> - Moving, home purchases, graduations</li>
+    <li><strong>Pets</strong> - New additions, pet health, etc.</li>
+    <li><strong>General concerns or excitement</strong> - Anything outside of work they mentioned</li>
+  </ul>
+
+  <h3>Example Output</h3>
+
+  <pre><code>## Personal Notes
+
+- Daughter's birthday party next weekend
+- Planning family trip to Italy in March
+- Recently started learning piano
+- Dog recovering well from surgery last week</code></pre>
+
+  <p>
+    If no personal details are shared, the section will note: "No personal details noted in this meeting."
+  </p>
 
   <h2 id="manual">Running Manually</h2>
 

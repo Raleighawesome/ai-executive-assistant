@@ -412,6 +412,77 @@ curl http://localhost:6333/collections/personal_assistant</code></pre>
     you may need to recreate the collection or use a different collection name.
   </p>
 
+  <h2 id="mcp-integration">MCP Server Integration</h2>
+
+  <p>
+    If you're using <strong>Claude Code</strong> (Anthropic's CLI for Claude), you can query Qdrant directly
+    through the Model Context Protocol (MCP). This enables semantic search within your Claude Code conversations
+    without needing the FastAPI server.
+  </p>
+
+  <h3>How It Works</h3>
+
+  <p>
+    The <code>embed_to_qdrant.py</code> script stores embeddings in a format compatible with the
+    <a href="https://github.com/qdrant/mcp-server-qdrant" target="_blank" rel="noopener">Qdrant MCP Server</a>:
+  </p>
+
+  <ul>
+    <li><strong>Named vectors</strong> - Uses <code>text_embedding_004</code> vector name instead of unnamed vectors</li>
+    <li><strong>Document field</strong> - Each chunk includes <code>payload["document"]</code> with the full text content</li>
+    <li><strong>Rich metadata</strong> - All frontmatter fields (people, tags, category, type) are stored for filtering</li>
+  </ul>
+
+  <h3>Setting Up MCP Server</h3>
+
+  <p>Add the Qdrant MCP server to your Claude Code configuration:</p>
+
+  <pre><code>{`{
+  "mcpServers": {
+    "qdrant": {
+      "command": "uvx",
+      "args": ["mcp-server-qdrant"],
+      "env": {
+        "QDRANT_URL": "http://localhost:6333",
+        "COLLECTION_NAME": "personal_assistant"
+      }
+    }
+  }
+}`}</code></pre>
+
+  <h3>Using Qdrant in Claude Code</h3>
+
+  <p>Once configured, Claude Code can query your knowledge base using the <code>qdrant-find</code> tool:</p>
+
+  <pre><code># Example: Find context for a daily briefing
+mcp__qdrant__qdrant-find(query="platform strategy discussion", limit=5)
+
+# Example: Search for one-on-one notes
+mcp__qdrant__qdrant-find(query="coaching opportunities growth feedback", limit=10)</code></pre>
+
+  <p>
+    This powers features like <code>/daily-briefing-v2</code>, which retrieves relevant historical context
+    from your meeting notes when preparing daily briefings.
+  </p>
+
+  <h3>Migration from Unnamed Vectors</h3>
+
+  <p>
+    If you embedded documents before the MCP compatibility update, you'll need to re-ingest your collection:
+  </p>
+
+  <pre><code># Delete the old collection
+curl -X DELETE "http://localhost:6333/collections/personal_assistant"
+
+# Re-embed all documents with new format
+python scripts/embed_to_qdrant.py \
+  --input "Meetings" \
+  --recursive \
+  --ext md \
+  --collection personal_assistant \
+  --vault-root ~/Documents/MyVault \
+  --force</code></pre>
+
   <h2>Next Steps</h2>
 
   <p>
