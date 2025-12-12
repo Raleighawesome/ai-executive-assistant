@@ -156,5 +156,19 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       hideEventTypeDetails: false,
       layout: "month_view",
     });
+
+    // Track consulting page view
+    if (typeof umami !== 'undefined') {
+      umami.track('consulting-view');
+    }
+
+    // Track calendar interaction on first click
+    let calendarTracked = false;
+    document.getElementById('cal-embed')?.addEventListener('click', () => {
+      if (!calendarTracked && typeof umami !== 'undefined') {
+        umami.track('calendar-interact');
+        calendarTracked = true;
+      }
+    });
   </script>
 </BaseLayout>
