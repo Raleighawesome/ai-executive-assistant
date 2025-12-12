@@ -141,6 +141,11 @@ ${state.preferences.actionItemFormat}
   const downloadZip = async () => {
     setIsGenerating(true);
 
+    // Track download started
+    if (typeof window !== 'undefined' && (window as any).umami) {
+      (window as any).umami.track('download-click');
+    }
+
     try {
       const zip = new JSZip();
 
@@ -181,6 +186,11 @@ Visit https://ai-executive-assistant.vercel.app/docs for full documentation.
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+
+      // Track setup complete
+      if (typeof window !== 'undefined' && (window as any).umami) {
+        (window as any).umami.track('setup-complete');
+      }
     } catch (error) {
       console.error('Error generating ZIP:', error);
       alert('Failed to generate configuration. Please try again.');
